@@ -1,11 +1,12 @@
 use serde::Serialize;
+use std::collections::HashMap;
 use std::io::{Error, ErrorKind};
 use std::str::FromStr;
 use warp::cors::CorsForbidden;
 use warp::{http, reject::Reject, Filter};
 use warp::{Rejection, Reply};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, PartialEq, Eq, Hash, Clone)]
 struct QuestionId(String);
 
 #[derive(Debug)]
@@ -75,6 +76,22 @@ async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
         "Route not found".to_string(),
         http::StatusCode::NOT_FOUND,
     ))
+}
+
+struct Store {
+    questions: HashMap<QuestionId, Question>,
+}
+
+impl Store {
+    fn new() -> Self {
+        Store {
+            questions: HashMap::new(),
+        }
+    }
+    fn init() {}
+    fn add_question(&mut self, q: Question) {
+        self.questions.insert(q.id.clone(), q);
+    }
 }
 
 #[tokio::main]
