@@ -1,0 +1,8 @@
+{
+    "QI0001": {
+        "id": "QI0001",
+        "title": "First question asked ever.",
+        "content": "Random string",
+        "tags": ["general"]
+    }
+}
