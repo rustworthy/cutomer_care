@@ -1,9 +1,11 @@
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::hash::Hash;
 use std::io::{Error, ErrorKind};
 use std::str::FromStr;
+use std::sync::Arc;
 use warp::cors::CorsForbidden;
 use warp::reject::Reject;
 use warp::{http, Filter};
@@ -83,7 +85,7 @@ async fn list_guestions(
     params: HashMap<String, String>,
     store: Store,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    let unpaginated_quests: Vec<Question> = store.questions.values().cloned().collect();
+    let unpaginated_quests: Vec<Question> = store.questions.read().values().cloned().collect();
     if params.is_empty() {
         return Ok(warp::reply::json(&unpaginated_quests));
     }
@@ -118,13 +120,13 @@ async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
 
 #[derive(Clone)]
 struct Store {
-    questions: HashMap<QuestionId, Question>,
+    questions: Arc<RwLock<HashMap<QuestionId, Question>>>,
 }
 
 impl Store {
     fn new() -> Self {
         Store {
-            questions: Self::init(),
+            questions: Arc::new(RwLock::new(Self::init())),
         }
     }
 
