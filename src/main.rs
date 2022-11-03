@@ -6,29 +6,55 @@ use std::hash::Hash;
 use std::io::{Error, ErrorKind};
 use std::str::FromStr;
 use std::sync::Arc;
+use uuid::Uuid;
 use warp::body::BodyDeserializeError;
 use warp::cors::CorsForbidden;
 use warp::reject::Reject;
 use warp::{http, Filter};
 use warp::{Rejection, Reply};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
-struct QuestionId(String);
+type ArcStore = Arc<RwLock<Store>>;
+type Params = HashMap<String, String>;
 
-impl FromStr for QuestionId {
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
+struct QuestId(String);
+impl QuestId {
+    fn new() -> Self {
+        Self(Uuid::new_v4().to_string())
+    }
+}
+
+impl FromStr for QuestId {
     type Err = std::io::Error;
 
     fn from_str(id: &str) -> Result<Self, Self::Err> {
         match id.is_empty() {
             true => Err(Error::new(ErrorKind::InvalidInput, "No id provided")),
-            false => Ok(QuestionId(id.to_string())),
+            false => Ok(QuestId(id.to_string())),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct QuestInput {
+    title: String,
+    content: String,
+    tags: Option<Vec<String>>,
+}
+impl QuestInput {
+    fn prepare_for_storage(self) -> Question {
+        Question {
+            id: QuestId::new(),
+            title: self.title,
+            content: self.content,
+            tags: self.tags,
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Question {
-    id: QuestionId,
+    id: QuestId,
     title: String,
     content: String,
     tags: Option<Vec<String>>,
@@ -84,11 +110,8 @@ impl Pagination {
     }
 }
 
-async fn list_guestions(
-    params: HashMap<String, String>,
-    store: Arc<RwLock<Store>>,
-) -> Result<impl warp::Reply, warp::Rejection> {
-    let unpaginated_quests: Vec<Question> = store.read().questions.values().cloned().collect();
+async fn list_guestions(params: Params, st: ArcStore) -> Result<impl warp::Reply, warp::Rejection> {
+    let unpaginated_quests: Vec<Question> = st.read().questions.values().cloned().collect();
     if params.is_empty() {
         return Ok(warp::reply::json(&unpaginated_quests));
     }
@@ -100,35 +123,34 @@ async fn list_guestions(
     Ok(warp::reply::json(&requested_chunk))
 }
 
-async fn add_question(store: Arc<RwLock<Store>>, quest: Question) -> Result<impl Reply, Rejection> {
-    store.write().questions.insert(quest.id.clone(), quest);
+async fn add_question(store: ArcStore, q: QuestInput) -> Result<impl Reply, Rejection> {
+    let q = q.prepare_for_storage();
+    store.write().questions.insert(q.id.clone(), q);
     Ok(warp::reply::with_status(
         "Question successfully added",
         http::StatusCode::CREATED,
     ))
 }
 
-async fn update_question(
-    id: String,
-    store: Arc<RwLock<Store>>,
-    quest_upd: Question,
-) -> Result<impl Reply, Rejection> {
-    match store.write().questions.get_mut(&QuestionId(id)) {
-        Some(quest) => *quest = quest_upd,
-        None => return Err(warp::reject::custom(ServiceError::ObjectNotFound)),
+async fn update_question(id: String, st: ArcStore, q: QuestInput) -> Result<impl Reply, Rejection> {
+    if let Some(quest) = st.write().questions.get_mut(&QuestId(id)) {
+        quest.title = q.title;
+        quest.content = q.content;
+        quest.tags = q.tags;
+        return Ok(warp::reply::with_status("", http::StatusCode::NO_CONTENT));
     }
-    Ok(warp::reply::with_status("", http::StatusCode::NO_CONTENT))
+    Err(warp::reject::custom(ServiceError::ObjectNotFound))
 }
 
 async fn delete_question(id: String, store: Arc<RwLock<Store>>) -> Result<impl Reply, Rejection> {
-    match store.write().questions.remove(&QuestionId(id)) {
+    match store.write().questions.remove(&QuestId(id)) {
         Some(_) => Ok(warp::reply::with_status("", http::StatusCode::NO_CONTENT)),
         None => Err(warp::reject::custom(ServiceError::ObjectNotFound)),
     }
 }
 
 async fn get_question(id: String, store: Arc<RwLock<Store>>) -> Result<impl Reply, Rejection> {
-    match store.read().questions.get(&QuestionId(id)) {
+    match store.read().questions.get(&QuestId(id)) {
         Some(quest) => Ok(warp::reply::json(&quest)),
         None => Err(warp::reject::custom(ServiceError::ObjectNotFound)),
     }
@@ -165,7 +187,7 @@ async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
 
 #[derive(Clone)]
 struct Store {
-    questions: HashMap<QuestionId, Question>,
+    questions: HashMap<QuestId, Question>,
 }
 
 impl Store {
@@ -175,9 +197,12 @@ impl Store {
         }
     }
 
-    fn init() -> HashMap<QuestionId, Question> {
+    fn init() -> HashMap<QuestId, Question> {
         let file = include_str!("../questions.json");
-        serde_json::from_str(file).expect("Failed to read quetions id")
+        if file.is_empty() {
+            return HashMap::new();
+        }
+        serde_json::from_str(file).expect("Failed to read quetions from storage")
     }
 }
 
