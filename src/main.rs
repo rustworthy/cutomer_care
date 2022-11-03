@@ -6,6 +6,7 @@ use std::hash::Hash;
 use std::io::{Error, ErrorKind};
 use std::str::FromStr;
 use std::sync::Arc;
+use warp::body::BodyDeserializeError;
 use warp::cors::CorsForbidden;
 use warp::reject::Reject;
 use warp::{http, Filter};
@@ -38,15 +39,17 @@ enum ServiceError {
     ParseError(std::num::ParseIntError),
     MissingParams,
     InvalidParamsRange,
+    ObjectNotFound,
 }
 
 impl Reject for ServiceError {}
 impl Display for ServiceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ServiceError::ParseError(err) => write!(f, "Failed to parse parameter: {}", err),
-            ServiceError::MissingParams => write!(f, "Missing parameter"),
-            ServiceError::InvalidParamsRange => write!(f, "Invalid parameters range"),
+            Self::ParseError(err) => write!(f, "Failed to parse parameter: {}", err),
+            Self::MissingParams => write!(f, "Missing parameter"),
+            Self::InvalidParamsRange => write!(f, "Invalid parameters range"),
+            Self::ObjectNotFound => write!(f, "Not found"),
         }
     }
 }
@@ -105,6 +108,32 @@ async fn add_question(store: Arc<RwLock<Store>>, quest: Question) -> Result<impl
     ))
 }
 
+async fn update_question(
+    id: String,
+    store: Arc<RwLock<Store>>,
+    quest_upd: Question,
+) -> Result<impl Reply, Rejection> {
+    match store.write().questions.get_mut(&QuestionId(id)) {
+        Some(quest) => *quest = quest_upd,
+        None => return Err(warp::reject::custom(ServiceError::ObjectNotFound)),
+    }
+    Ok(warp::reply::with_status("", http::StatusCode::NO_CONTENT))
+}
+
+async fn delete_question(id: String, store: Arc<RwLock<Store>>) -> Result<impl Reply, Rejection> {
+    match store.write().questions.remove(&QuestionId(id)) {
+        Some(_) => Ok(warp::reply::with_status("", http::StatusCode::NO_CONTENT)),
+        None => Err(warp::reject::custom(ServiceError::ObjectNotFound)),
+    }
+}
+
+async fn get_question(id: String, store: Arc<RwLock<Store>>) -> Result<impl Reply, Rejection> {
+    match store.read().questions.get(&QuestionId(id)) {
+        Some(quest) => Ok(warp::reply::json(&quest)),
+        None => Err(warp::reject::custom(ServiceError::ObjectNotFound)),
+    }
+}
+
 async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
     if let Some(err) = r.find::<CorsForbidden>() {
         return Ok(warp::reply::with_status(
@@ -119,6 +148,13 @@ async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
             http::StatusCode::RANGE_NOT_SATISFIABLE,
         ));
     }
+
+    if let Some(err) = r.find::<BodyDeserializeError>() {
+        return Ok(warp::reply::with_status(
+            err.to_string(),
+            http::StatusCode::UNPROCESSABLE_ENTITY,
+        ));
+    };
 
     println!("{:?}", r);
     Ok(warp::reply::with_status(
@@ -168,7 +204,35 @@ async fn main() {
         .and(warp::body::json())
         .and_then(add_question);
 
-    let routes = list_quest.or(add_quest).with(cors).recover(handle_err);
+    let upd_quest = warp::put()
+        .and(warp::path("questions"))
+        .and(warp::path::param::<String>())
+        .and(warp::path::end())
+        .and(store_filter.clone())
+        .and(warp::body::json())
+        .and_then(update_question);
+
+    let del_quest = warp::delete()
+        .and(warp::path("questions"))
+        .and(warp::path::param::<String>())
+        .and(warp::path::end())
+        .and(store_filter.clone())
+        .and_then(delete_question);
+
+    let get_quest = warp::get()
+        .and(warp::path("questions"))
+        .and(warp::path::param::<String>())
+        .and(warp::path::end())
+        .and(store_filter.clone())
+        .and_then(get_question);
+
+    let routes = list_quest
+        .or(add_quest)
+        .or(upd_quest)
+        .or(del_quest)
+        .or(get_quest)
+        .with(cors)
+        .recover(handle_err);
 
     warp::serve(routes).run(([127, 0, 0, 1], 7878)).await;
 }
