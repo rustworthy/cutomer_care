@@ -206,6 +206,7 @@ impl Store {
     }
 }
 
+
 #[tokio::main]
 async fn main() {
     let store = Arc::new(RwLock::new(Store::new()));
@@ -260,4 +261,18 @@ async fn main() {
         .recover(handle_err);
 
     warp::serve(routes).run(([127, 0, 0, 1], 7878)).await;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::filters;
+    use warp::test::request;
+    use warp::http::StatusCode;
+
+    #[tokio::test]
+    async fn test_list_questions() {
+        let api = filters::list_questions();
+        let resp = request().method("GET").path("/questions").reply(&api).await;
+        assert_eq!(resp.status(), StatusCode::ACCEPTED)
+    }
 }
