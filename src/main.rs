@@ -83,9 +83,9 @@ impl Pagination {
 
 async fn list_guestions(
     params: HashMap<String, String>,
-    store: Store,
+    store: Arc<RwLock<Store>>,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    let unpaginated_quests: Vec<Question> = store.questions.read().values().cloned().collect();
+    let unpaginated_quests: Vec<Question> = store.read().questions.values().cloned().collect();
     if params.is_empty() {
         return Ok(warp::reply::json(&unpaginated_quests));
     }
@@ -95,6 +95,14 @@ async fn list_guestions(
     }
     let requested_chunk = &unpaginated_quests[pgn.start..pgn.end];
     Ok(warp::reply::json(&requested_chunk))
+}
+
+async fn add_question(store: Arc<RwLock<Store>>, quest: Question) -> Result<impl Reply, Rejection> {
+    store.write().questions.insert(quest.id.clone(), quest);
+    Ok(warp::reply::with_status(
+        "Question successfully added",
+        http::StatusCode::CREATED,
+    ))
 }
 
 async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
@@ -112,6 +120,7 @@ async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
         ));
     }
 
+    println!("{:?}", r);
     Ok(warp::reply::with_status(
         "Not found".to_string(),
         http::StatusCode::NOT_FOUND,
@@ -120,13 +129,13 @@ async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
 
 #[derive(Clone)]
 struct Store {
-    questions: Arc<RwLock<HashMap<QuestionId, Question>>>,
+    questions: HashMap<QuestionId, Question>,
 }
 
 impl Store {
     fn new() -> Self {
         Store {
-            questions: Arc::new(RwLock::new(Self::init())),
+            questions: Self::init(),
         }
     }
 
@@ -138,8 +147,8 @@ impl Store {
 
 #[tokio::main]
 async fn main() {
-    let store = Store::new();
-    let store_filter = warp::any().map(move || store.clone());
+    let store = Arc::new(RwLock::new(Store::new()));
+    let store_filter = warp::any().map(move || Arc::clone(&store));
     let cors = warp::cors()
         .allow_methods(vec![http::Method::PUT, http::Method::DELETE])
         .allow_origins(vec!["http://front-end-service:3000"])
@@ -149,11 +158,17 @@ async fn main() {
         .and(warp::path("questions"))
         .and(warp::path::end())
         .and(warp::query())
-        .and(store_filter)
-        .and_then(list_guestions)
-        .recover(handle_err);
+        .and(store_filter.clone())
+        .and_then(list_guestions);
 
-    let routes = list_quest.with(cors);
+    let add_quest = warp::post()
+        .and(warp::path("questions"))
+        .and(warp::path::end())
+        .and(store_filter.clone())
+        .and(warp::body::json())
+        .and_then(add_question);
+
+    let routes = list_quest.or(add_quest).with(cors).recover(handle_err);
 
     warp::serve(routes).run(([127, 0, 0, 1], 7878)).await;
 }
