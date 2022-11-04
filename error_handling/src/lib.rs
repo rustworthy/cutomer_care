@@ -1,6 +1,10 @@
 #![allow(dead_code)]
 
 use warp::reject::Reject;
+use warp::{Reply, Rejection};
+use warp::cors::CorsForbidden;
+use warp::body::BodyDeserializeError;
+use warp::http::StatusCode;
 
 #[derive(Debug)]
 pub enum ServiceError {
@@ -21,4 +25,33 @@ impl std::fmt::Display for ServiceError {
             Self::ObjectNotFound => write!(f, "Not found"),
         }
     }
+}
+
+pub async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
+    if let Some(err) = r.find::<CorsForbidden>() {
+        return Ok(warp::reply::with_status(
+            err.to_string(),
+            StatusCode::FORBIDDEN,
+        ));
+    }
+
+    if let Some(err) = r.find::<ServiceError>() {
+        return Ok(warp::reply::with_status(
+            err.to_string(),
+            StatusCode::RANGE_NOT_SATISFIABLE,
+        ));
+    }
+
+    if let Some(err) = r.find::<BodyDeserializeError>() {
+        return Ok(warp::reply::with_status(
+            err.to_string(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+        ));
+    };
+
+    println!("{:?}", r);
+    Ok(warp::reply::with_status(
+        "Not found".to_string(),
+        StatusCode::NOT_FOUND,
+    ))
 }
