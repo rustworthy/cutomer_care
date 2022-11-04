@@ -1,25 +1,22 @@
 use error_handling::ServiceError;
-use parking_lot::RwLock;
 use std::str::FromStr;
-use std::sync::Arc;
 use warp::http::StatusCode;
 use warp::{Rejection, Reply};
 
-use crate::store::Store;
+use crate::store::ThreadSafeStore;
 use crate::types::pagination::Pagination;
-use crate::types::question::{QuestId, QuestInput, Question};
+use crate::types::question::{QuestId, QuestInput};
 
-type ArcStore = Arc<RwLock<Store>>;
 type Params = std::collections::HashMap<String, String>;
 
-pub async fn list_guestions(
-    params: Params,
-    st: ArcStore,
-) -> Result<impl warp::Reply, warp::Rejection> {
-    let unpaginated_quests: Vec<Question> = st.read().questions.values().cloned().collect();
+pub async fn list_guestions(params: Params, st: ThreadSafeStore) -> Result<impl Reply, Rejection> {
+    let locked_store = st.read();
+    let unpaginated_quests = locked_store.all();
+
     if params.is_empty() {
         return Ok(warp::reply::json(&unpaginated_quests));
     }
+
     let pgn = Pagination::parse_from_map(params)?;
     if pgn.end >= unpaginated_quests.len() {
         return Ok(warp::reply::json(&unpaginated_quests));
@@ -28,9 +25,8 @@ pub async fn list_guestions(
     Ok(warp::reply::json(&requested_chunk))
 }
 
-pub async fn add_question(store: ArcStore, q: QuestInput) -> Result<impl Reply, Rejection> {
-    let q = q.prepare_for_storage();
-    store.write().questions.insert(q.id.clone(), q);
+pub async fn add_question(store: ThreadSafeStore, q: QuestInput) -> Result<impl Reply, Rejection> {
+    store.write().save(q);
     Ok(warp::reply::with_status(
         "Question successfully added",
         StatusCode::CREATED,
@@ -39,39 +35,29 @@ pub async fn add_question(store: ArcStore, q: QuestInput) -> Result<impl Reply, 
 
 pub async fn update_question(
     id: String,
-    st: ArcStore,
+    st: ThreadSafeStore,
     q: QuestInput,
 ) -> Result<impl Reply, Rejection> {
-    if let Some(quest) = st
+    if st
         .write()
-        .questions
-        .get_mut(&QuestId::from_str(&id).unwrap())
+        .update(QuestId::from_str(&id).unwrap(), q)
+        .is_ok()
     {
-        quest.title = q.title;
-        quest.content = q.content;
-        quest.tags = q.tags;
         return Ok(warp::reply::with_status("", StatusCode::NO_CONTENT));
     }
     Err(warp::reject::custom(ServiceError::ObjectNotFound))
 }
 
-pub async fn delete_question(
-    id: String,
-    store: Arc<RwLock<Store>>,
-) -> Result<impl Reply, Rejection> {
-    match store
-        .write()
-        .questions
-        .remove(&QuestId::from_str(&id).unwrap())
-    {
-        Some(_) => Ok(warp::reply::with_status("", StatusCode::NO_CONTENT)),
-        None => Err(warp::reject::custom(ServiceError::ObjectNotFound)),
+pub async fn delete_question(id: String, st: ThreadSafeStore) -> Result<impl Reply, Rejection> {
+    if st.write().remove(QuestId::from_str(&id).unwrap()).is_some() {
+        return Ok(warp::reply::with_status("", StatusCode::NO_CONTENT));
     }
+    Err(warp::reject::custom(ServiceError::ObjectNotFound))
 }
 
-pub async fn get_question(id: String, store: Arc<RwLock<Store>>) -> Result<impl Reply, Rejection> {
-    match store.read().questions.get(&QuestId::from_str(&id).unwrap()) {
-        Some(quest) => Ok(warp::reply::json(&quest)),
-        None => Err(warp::reject::custom(ServiceError::ObjectNotFound)),
+pub async fn get_question(id: String, st: ThreadSafeStore) -> Result<impl Reply, Rejection> {
+    if let Some(quest) = st.read().one(QuestId::from_str(&id).unwrap()) {
+        return Ok(warp::reply::json(quest));
     }
+    Err(warp::reject::custom(ServiceError::ObjectNotFound))
 }

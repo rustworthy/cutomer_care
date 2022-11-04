@@ -1,6 +1,4 @@
 use error_handling::handle_err;
-use parking_lot::RwLock;
-use std::sync::Arc;
 use warp::{http, Filter};
 
 mod routes;
@@ -9,8 +7,14 @@ mod types;
 
 #[tokio::main]
 async fn main() {
-    let store = Arc::new(RwLock::new(store::Store::new()));
-    let store_filter = warp::any().map(move || Arc::clone(&store));
+    env_logger::init();
+
+    log::error!("This is error");
+    log::info!("THis is info!");
+    log::warn!("This is warning");
+
+    let store = store::Store::new_arc();
+    let store_filter = warp::any().map(move || store::Store::clone(&store));
     let cors = warp::cors()
         .allow_methods(vec![http::Method::PUT, http::Method::DELETE])
         .allow_origins(vec!["http://front-end-service:3000"])
