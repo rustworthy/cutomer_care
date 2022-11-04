@@ -1,7 +1,7 @@
+use error_handling::ServiceError;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fmt::Display;
 use std::hash::Hash;
 use std::io::{Error, ErrorKind};
 use std::str::FromStr;
@@ -9,10 +9,8 @@ use std::sync::Arc;
 use uuid::Uuid;
 use warp::body::BodyDeserializeError;
 use warp::cors::CorsForbidden;
-use warp::reject::Reject;
 use warp::{http, Filter};
 use warp::{Rejection, Reply};
-
 type ArcStore = Arc<RwLock<Store>>;
 type Params = HashMap<String, String>;
 
@@ -58,26 +56,6 @@ struct Question {
     title: String,
     content: String,
     tags: Option<Vec<String>>,
-}
-
-#[derive(Debug)]
-enum ServiceError {
-    ParseError(std::num::ParseIntError),
-    MissingParams,
-    InvalidParamsRange,
-    ObjectNotFound,
-}
-
-impl Reject for ServiceError {}
-impl Display for ServiceError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::ParseError(err) => write!(f, "Failed to parse parameter: {}", err),
-            Self::MissingParams => write!(f, "Missing parameter"),
-            Self::InvalidParamsRange => write!(f, "Invalid parameters range"),
-            Self::ObjectNotFound => write!(f, "Not found"),
-        }
-    }
 }
 
 struct Pagination {
@@ -206,7 +184,6 @@ impl Store {
     }
 }
 
-
 #[tokio::main]
 async fn main() {
     let store = Arc::new(RwLock::new(Store::new()));
@@ -216,16 +193,14 @@ async fn main() {
         .allow_origins(vec!["http://front-end-service:3000"])
         .allow_header("content-type");
 
-    let list_quest = warp::get()
-        .and(warp::path("questions"))
-        .and(warp::path::end())
+    let list_quest = warp::path!("questions")
+        .and(warp::get())
         .and(warp::query())
         .and(store_filter.clone())
         .and_then(list_guestions);
 
-    let add_quest = warp::post()
-        .and(warp::path("questions"))
-        .and(warp::path::end())
+    let add_quest = warp::path!("questions")
+        .and(warp::post())
         .and(store_filter.clone())
         .and(warp::body::json())
         .and_then(add_question);
@@ -263,16 +238,30 @@ async fn main() {
     warp::serve(routes).run(([127, 0, 0, 1], 7878)).await;
 }
 
-#[cfg(test)]
-mod tests {
-    use super::filters;
-    use warp::test::request;
-    use warp::http::StatusCode;
+// mod filters {
+//     use warp::Filter;
+//     use super::handlers;
 
-    #[tokio::test]
-    async fn test_list_questions() {
-        let api = filters::list_questions();
-        let resp = request().method("GET").path("/questions").reply(&api).await;
-        assert_eq!(resp.status(), StatusCode::ACCEPTED)
-    }
-}
+//     pub fn list_questions() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+//         warp::get()
+//         .and(warp::path("questions"))
+//         .and(warp::path::end())
+//         .and(warp::query())
+//         .and(store_filter.clone())
+//         .and_then(handlers::list_guestions);
+//     }
+// }
+
+// #[cfg(test)]
+// mod tests {
+//     use super::filters;
+//     use warp::test::request;
+//     use warp::http::StatusCode;
+
+//     #[tokio::test]
+//     async fn test_list_questions() {
+//         let api = filters::list_questions();
+//         let resp = request().method("GET").path("/questions").reply(&api).await;
+//         assert_eq!(resp.status(), StatusCode::ACCEPTED)
+//     }
+// }

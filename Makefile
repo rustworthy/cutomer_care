@@ -1,5 +1,7 @@
-.PHONY: clean serve
+.PHONY: clean serve test
+
 default: clean
+
 
 clean:
 	cargo fmt && cargo clippy
