@@ -1,4 +1,5 @@
 use error_handling::handle_err;
+use tracing_subscriber::fmt::format::FmtSpan;
 use warp::{http, Filter};
 
 mod routes;
@@ -7,19 +8,13 @@ mod types;
 
 #[tokio::main]
 async fn main() {
-    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
+    let log_filter =
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "customer_care=info,warp=error".to_owned());
 
-    let log = warp::log::custom(|info| {
-        log::error!(
-            "{} {} {} -- {:?} -- from {:?} with {:?}",
-            info.method(),
-            info.path(),
-            info.status(),
-            info.elapsed(),
-            info.remote_addr().unwrap(),
-            info.request_headers(),
-        );
-    });
+    tracing_subscriber::fmt()
+        .with_env_filter(log_filter)
+        .with_span_events(FmtSpan::CLOSE)
+        .init();
 
     let store = store::Store::new_arc();
     let store_filter = warp::any().map(move || store::Store::clone(&store));
@@ -69,7 +64,7 @@ async fn main() {
         .or(get_quest)
         .with(cors)
         .recover(handle_err)
-        .with(log);
+        .with(warp::trace::request());
 
     warp::serve(routes).run(([127, 0, 0, 1], 7878)).await;
 }

@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 pub type ThreadSafeStore = Arc<parking_lot::RwLock<Store>>;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Store {
     questions: HashMap<QuestId, Question>,
 }
