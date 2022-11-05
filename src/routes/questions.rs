@@ -26,9 +26,9 @@ pub async fn list_guestions(params: Params, st: ThreadSafeStore) -> Result<impl 
 }
 
 pub async fn add_question(store: ThreadSafeStore, q: QuestInput) -> Result<impl Reply, Rejection> {
-    store.write().save(q);
+    let inserted_id = store.write().save(q);
     Ok(warp::reply::with_status(
-        "Question successfully added",
+        warp::reply::json(&inserted_id.as_dict()),
         StatusCode::CREATED,
     ))
 }
@@ -40,11 +40,16 @@ pub async fn update_question(
 ) -> Result<impl Reply, Rejection> {
     if st
         .write()
-        .update(QuestId::from_str(&id).unwrap(), q)
+        .update(QuestId::from_str(&id).unwrap(), q.clone())
         .is_ok()
     {
         return Ok(warp::reply::with_status("", StatusCode::NO_CONTENT));
     }
+    log::warn!(
+        "Question with id {} not found. Attempted upd details: {:?}",
+        id,
+        q
+    );
     Err(warp::reject::custom(ServiceError::ObjectNotFound))
 }
 

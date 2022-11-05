@@ -36,9 +36,11 @@ impl Store {
         self.questions.get(&id)
     }
 
-    pub fn save(&mut self, q: QuestInput) {
+    pub fn save(&mut self, q: QuestInput) -> QuestId {
         let q = q.prepare_for_storage();
+        let id = q.id.clone();
         self.questions.insert(q.id.clone(), q);
+        id
     }
 
     pub fn update(&mut self, id: QuestId, quest_upd: QuestInput) -> Result<(), &'static str> {

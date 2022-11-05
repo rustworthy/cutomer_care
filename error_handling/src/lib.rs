@@ -49,7 +49,6 @@ pub async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
         ));
     };
 
-    println!("{:?}", r);
     Ok(warp::reply::with_status(
         "Not found".to_string(),
         StatusCode::NOT_FOUND,

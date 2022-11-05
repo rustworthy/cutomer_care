@@ -16,6 +16,12 @@ impl QuestId {
     fn new() -> Self {
         Self(Uuid::new_v4().to_string())
     }
+
+    pub fn as_dict(&self) -> std::collections::HashMap<String, Self> {
+        let mut dict = std::collections::HashMap::new();
+        dict.insert(String::from("id"), self.clone());
+        dict
+    }
 }
 
 impl std::str::FromStr for QuestId {
@@ -32,7 +38,7 @@ impl std::str::FromStr for QuestId {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct QuestInput {
     pub title: String,
     pub content: String,

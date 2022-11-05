@@ -7,11 +7,19 @@ mod types;
 
 #[tokio::main]
 async fn main() {
-    env_logger::init();
+    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
 
-    log::error!("This is error");
-    log::info!("THis is info!");
-    log::warn!("This is warning");
+    let log = warp::log::custom(|info| {
+        log::error!(
+            "{} {} {} -- {:?} -- from {:?} with {:?}",
+            info.method(),
+            info.path(),
+            info.status(),
+            info.elapsed(),
+            info.remote_addr().unwrap(),
+            info.request_headers(),
+        );
+    });
 
     let store = store::Store::new_arc();
     let store_filter = warp::any().map(move || store::Store::clone(&store));
@@ -60,35 +68,8 @@ async fn main() {
         .or(del_quest)
         .or(get_quest)
         .with(cors)
-        .recover(handle_err);
+        .recover(handle_err)
+        .with(log);
 
     warp::serve(routes).run(([127, 0, 0, 1], 7878)).await;
 }
-
-// mod filters {
-//     use warp::Filter;
-//     use super::handlers;
-
-//     pub fn list_questions() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-//         warp::get()
-//         .and(warp::path("questions"))
-//         .and(warp::path::end())
-//         .and(warp::query())
-//         .and(store_filter.clone())
-//         .and_then(handlers::list_guestions);
-//     }
-// }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::filters;
-//     use warp::test::request;
-//     use warp::http::StatusCode;
-
-//     #[tokio::test]
-//     async fn test_list_questions() {
-//         let api = filters::list_questions();
-//         let resp = request().method("GET").path("/questions").reply(&api).await;
-//         assert_eq!(resp.status(), StatusCode::ACCEPTED)
-//     }
-// }
