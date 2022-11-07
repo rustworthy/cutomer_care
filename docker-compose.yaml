@@ -1,0 +1,18 @@
+version: "3"
+
+services:
+
+  db:
+    build: 
+      context: ./Docker
+      dockerfile: Dockerfile.db
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    env_file:
+        - .env
+    ports:
+      - "127.0.0.1:5430:5432"
+
+volumes: 
+  pgdata:

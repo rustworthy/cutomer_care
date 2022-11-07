@@ -1,41 +1,41 @@
 use error_handling::ServiceError;
 use std::collections::HashMap;
 
+#[derive(Default)]
 pub struct Pagination {
-    pub start: usize,
-    pub end: usize,
+    pub offset: i32,
+    pub limit: Option<i32>,
 }
 
 impl Pagination {
     /// ## Example usage
     /// ```rust
     /// let query_string_params = HashMap::new();
-    /// query_string_params.push("start", "1");
-    /// query_string_params.push("end", "100");
+    /// query_string_params.push("offset", "1");
+    /// query_string_params.push("limit", "100");
     /// let pagination = types::pagination::Pagination::parse_from_map(query_string_params).unwrap();
-    /// assert_eq!(pagination.start, 1);
-    /// assert_eq!(pagination.start, 100);
+    /// assert_eq!(pagination.offset, 1);
+    /// assert_eq!(pagination.limit, Some(100));
     /// ```
     pub fn parse_from_map(params: HashMap<String, String>) -> Result<Self, ServiceError> {
-        if !params.contains_key("start") || !params.contains_key("end") {
+        if !params.contains_key("offset") || !params.contains_key("limit") {
             return Err(ServiceError::MissingParams);
         }
 
-        let start = params
-            .get("start")
+        let offset = params
+            .get("offset")
             .unwrap()
-            .parse::<usize>()
+            .parse::<u32>()
             .map_err(ServiceError::ParseError)?;
-        let end = params
-            .get("end")
+        let limit = params
+            .get("limit")
             .unwrap()
-            .parse::<usize>()
+            .parse::<u32>()
             .map_err(ServiceError::ParseError)?;
 
-        if start > end {
-            return Err(ServiceError::InvalidParamsRange);
-        }
-
-        Ok(Self { start, end })
+        Ok(Self {
+            offset: offset as i32,
+            limit: Some(limit as i32),
+        })
     }
 }

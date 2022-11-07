@@ -1,3 +1,4 @@
+use dotenvy::dotenv;
 use error_handling::handle_err;
 use tracing_subscriber::fmt::format::FmtSpan;
 use warp::{http, Filter};
@@ -8,6 +9,11 @@ mod types;
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
+
+    let db = store::Db::from_env().await;
+    db.run_migrations().await;
+
     let log_filter =
         std::env::var("RUST_LOG").unwrap_or_else(|_| "customer_care=info,warp=error".to_owned());
 
@@ -16,22 +22,22 @@ async fn main() {
         .with_span_events(FmtSpan::CLOSE)
         .init();
 
-    let store = store::Store::new_arc();
-    let store_filter = warp::any().map(move || store::Store::clone(&store));
     let cors = warp::cors()
         .allow_methods(vec![http::Method::PUT, http::Method::DELETE])
         .allow_origins(vec!["http://front-end-service:3000"])
         .allow_header("content-type");
 
+    let db_filter = warp::any().map(move || db.clone());
+
     let list_quest = warp::path!("questions")
         .and(warp::get())
         .and(warp::query())
-        .and(store_filter.clone())
+        .and(db_filter.clone())
         .and_then(routes::questions::list_guestions);
 
     let add_quest = warp::path!("questions")
         .and(warp::post())
-        .and(store_filter.clone())
+        .and(db_filter.clone())
         .and(warp::body::json())
         .and_then(routes::questions::add_question);
 
@@ -39,7 +45,7 @@ async fn main() {
         .and(warp::path("questions"))
         .and(warp::path::param::<String>())
         .and(warp::path::end())
-        .and(store_filter.clone())
+        .and(db_filter.clone())
         .and(warp::body::json())
         .and_then(routes::questions::update_question);
 
@@ -47,14 +53,14 @@ async fn main() {
         .and(warp::path("questions"))
         .and(warp::path::param::<String>())
         .and(warp::path::end())
-        .and(store_filter.clone())
+        .and(db_filter.clone())
         .and_then(routes::questions::delete_question);
 
     let get_quest = warp::get()
         .and(warp::path("questions"))
         .and(warp::path::param::<String>())
         .and(warp::path::end())
-        .and(store_filter.clone())
+        .and(db_filter.clone())
         .and_then(routes::questions::get_question);
 
     let routes = list_quest
