@@ -3,6 +3,7 @@ use warp::http::StatusCode;
 use warp::{Rejection, Reply};
 
 use crate::store::Db;
+use crate::text_processing::filter_out_bad_words;
 use crate::types::pagination::Pagination;
 use crate::types::question::{QuestId, QuestInput};
 
@@ -20,7 +21,18 @@ pub async fn list_guestions(params: Params, db: Db) -> Result<impl Reply, Reject
     }
 }
 
-pub async fn add_question(db: Db, q: QuestInput) -> Result<impl Reply, Rejection> {
+pub async fn add_question(db: Db, mut q: QuestInput) -> Result<impl Reply, Rejection> {
+    let title = tokio::spawn(filter_out_bad_words(q.title));
+    let content = tokio::spawn(filter_out_bad_words(q.content));
+    let (title, content) = (title.await.unwrap(), content.await.unwrap());
+    q.title = match title {
+        Ok(sanitized_text) => sanitized_text,
+        Err(e) => return Err(warp::reject::custom(e)),
+    };
+    q.content = match content {
+        Ok(sanitized_text) => sanitized_text,
+        Err(e) => return Err(warp::reject::custom(e)),
+    };
     match db.add(q).await {
         Ok(inserted_id) => Ok(warp::reply::with_status(
             warp::reply::json(&inserted_id.as_dict()),
