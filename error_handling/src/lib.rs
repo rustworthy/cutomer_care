@@ -13,6 +13,7 @@ pub enum ServiceError {
     InvalidParamsRange,
     ObjectNotFound,
     DbQueryError,
+    ExternalApiError
 }
 
 impl Reject for ServiceError {}
@@ -25,6 +26,7 @@ impl std::fmt::Display for ServiceError {
             Self::InvalidParamsRange => write!(f, "Invalid parameters range"),
             Self::ObjectNotFound => write!(f, "Not found"),
             Self::DbQueryError => write!(f, "Query couldn't be executed"),
+            Self::ExternalApiError => write!(f, "Error fetching data from external service"),
         }
     }
 }

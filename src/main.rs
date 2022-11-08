@@ -5,6 +5,7 @@ use warp::{http, Filter};
 
 mod routes;
 mod store;
+mod text_processing;
 mod types;
 
 #[tokio::main]

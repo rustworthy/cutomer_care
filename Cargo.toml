@@ -13,3 +13,4 @@ tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = "0.2"
 sqlx = { version = "0.6", features = [  "runtime-tokio-rustls", "postgres", "migrate" ] }
 dotenvy = "0.15.6"
+reqwest = "0.11"
