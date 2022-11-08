@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::types::question::{QuestId, QuestInput, QuestOutput, QuestStatus};
+use crate::types::question::{QuestId, QuestIn, QuestOut, QuestStatus};
 use error_handling::ServiceError;
 use std::env;
 use std::str::FromStr;
@@ -53,15 +53,11 @@ impl Db {
         Self::build(&db_string).await
     }
 
-    pub async fn list(
-        &self,
-        skip: i32,
-        lim: Option<i32>,
-    ) -> Result<Vec<QuestOutput>, ServiceError> {
+    pub async fn list(&self, skip: i32, lim: Option<i32>) -> Result<Vec<QuestOut>, ServiceError> {
         let q = sqlx::query("SELECT _id::text, created_at::text, title, content, tags, status::text FROM questions LIMIT $1 OFFSET $2;")
             .bind(lim)
             .bind(skip);
-        let q = q.map(|row: PgRow| QuestOutput {
+        let q = q.map(|row: PgRow| QuestOut {
             _id: row.get("_id"),
             created_at: row.get("created_at"),
             title: row.get("title"),
@@ -78,7 +74,7 @@ impl Db {
         Ok(res.unwrap())
     }
 
-    pub async fn add(&self, q: QuestInput) -> Result<QuestId, ServiceError> {
+    pub async fn add(&self, q: QuestIn) -> Result<QuestId, ServiceError> {
         let quest_status = q.parse_status();
         let q = sqlx::query(
             "INSERT INTO questions (title, content, tags, status) VALUES ($1, $2, $3, $4::question_status) RETURNING _id::text;",
@@ -97,7 +93,7 @@ impl Db {
         Ok(res.unwrap())
     }
 
-    pub async fn update(&self, id: QuestId, q: QuestInput) -> Result<(), ServiceError> {
+    pub async fn update(&self, id: QuestId, q: QuestIn) -> Result<(), ServiceError> {
         let quest_status = q.parse_status();
         let q = sqlx::query(
             "UPDATE questions SET title = $1, content = $2, tags = $3, status = $4::question_status WHERE _id = uuid_or_null($5);",
@@ -136,11 +132,11 @@ impl Db {
         Ok(())
     }
 
-    pub async fn get(&self, id: QuestId) -> Result<QuestOutput, ServiceError> {
+    pub async fn get(&self, id: QuestId) -> Result<QuestOut, ServiceError> {
         let q =
             sqlx::query("SELECT _id::text, created_at::text, title, content, tags, status::text FROM questions WHERE _id = uuid_or_null($1);")
             .bind(id.to_str());
-        let q = q.map(|row: PgRow| QuestOutput {
+        let q = q.map(|row: PgRow| QuestOut {
             _id: row.get("_id"),
             created_at: row.get("created_at"),
             title: row.get("title"),

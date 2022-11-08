@@ -65,14 +65,14 @@ impl QuestStatus {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct QuestInput {
+pub struct QuestIn {
     pub title: String,
     pub content: String,
     pub tags: Option<Vec<String>>,
     pub status: Option<QuestStatus>,
 }
 
-impl QuestInput {
+impl QuestIn {
     pub fn parse_status(&self) -> String {
         if self.status.is_none() {
             return QuestStatus::Pending.to_str();
@@ -82,7 +82,7 @@ impl QuestInput {
 }
 
 #[derive(Serialize)]
-pub struct QuestOutput {
+pub struct QuestOut {
     pub _id: String,
     pub created_at: String,
     pub title: String,
