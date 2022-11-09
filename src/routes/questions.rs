@@ -2,7 +2,7 @@ use std::str::FromStr;
 use warp::http::StatusCode;
 use warp::{Rejection, Reply};
 
-use crate::store::Db;
+use crate::store::base::Db;
 use crate::text_processing::filter_out_bad_words;
 use crate::types::pagination::Pagination;
 use crate::types::question::{QuestId, QuestIn};

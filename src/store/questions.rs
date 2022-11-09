@@ -1,58 +1,14 @@
-#![allow(dead_code)]
-
 use crate::types::question::{QuestId, QuestIn, QuestOut, QuestStatus};
 use error_handling::ServiceError;
-use std::env;
 use std::str::FromStr;
 use tracing::{event, Level};
 
-use sqlx::postgres::{PgPool, PgPoolOptions, PgRow};
+use sqlx::postgres::PgRow;
 use sqlx::Row;
 
-#[derive(Debug, Clone)]
-pub struct Db {
-    pub connection: PgPool,
-}
+use super::base::Db;
 
 impl Db {
-    pub async fn run_migrations(&self) {
-        if let Err(e) = sqlx::migrate!().run(&self.clone().connection).await {
-            panic!("Failed to run migrations: {}", e)
-        }
-    }
-
-    async fn build(conn_string: &str) -> Self {
-        match PgPoolOptions::new()
-            .max_connections(5)
-            .connect(conn_string)
-            .await
-        {
-            Ok(connection) => Self { connection },
-            Err(err) => panic!("Couldn't establish DB connection: {}", err),
-        }
-    }
-
-    pub async fn new(usr: &str, pass: &str, host: &str, port: &str, db_name: &str) -> Self {
-        let db_string = format!(
-            "postgresql://{}:{}@{}:{}/{}",
-            usr, pass, host, port, db_name
-        );
-        Self::build(&db_string).await
-    }
-
-    pub async fn from_env() -> Self {
-        let db_string = format!(
-            "postgresql://{}:{}@{}:{}/{}",
-            &env::var("POSTGRES_USER").expect("POSTGRES_USER environment variable not set!"),
-            &env::var("POSTGRES_PASSWORD")
-                .expect("POSTGRES_PASSWORD environment variable not set!"),
-            &env::var("POSTGRES_HOST").expect("POSTGRES_HOST environment variable not set!"),
-            &env::var("POSTGRES_PORT").expect("POSTGRES_PORT environment variable not set!"),
-            &env::var("POSTGRES_DB").expect("POSTGRES_DB environment variable not set!"),
-        );
-        Self::build(&db_string).await
-    }
-
     pub async fn list(&self, skip: i32, lim: Option<i32>) -> Result<Vec<QuestOut>, ServiceError> {
         let q = sqlx::query("SELECT _id::text, created_at::text, title, content, tags, status::text FROM questions LIMIT $1 OFFSET $2;")
             .bind(lim)

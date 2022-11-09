@@ -12,7 +12,7 @@ mod types;
 async fn main() {
     dotenv().ok();
 
-    let db = store::Db::from_env().await;
+    let db = store::base::Db::from_env().await;
     db.run_migrations().await;
 
     let log_filter =
