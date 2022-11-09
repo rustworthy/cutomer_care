@@ -1,5 +1,3 @@
--- Add up migration script here
-
 CREATE OR REPLACE FUNCTION create_types() RETURNS integer AS $$
 	DECLARE type_already_exists INTEGER;
 		BEGIN
@@ -14,14 +12,27 @@ CREATE OR REPLACE FUNCTION create_types() RETURNS integer AS $$
 			RETURN type_already_exists;
 		END;
 		$$ LANGUAGE plpgsql;
-	SELECT create_types();
+SELECT create_types();
+
+CREATE TABLE IF NOT EXISTS users (
+    _id UUID UNIQUE DEFAULT gen_random_uuid(),
+    id serial PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT NOW(),
+	email VARCHAR(64) UNIQUE NOT NULL,
+	password TEXT NOT NULL,
+	first_name VARCHAR(64) NOT NULL,
+    last_name VARCHAR(64) NOT NULL,
+	is_staff BOOLEAN DEFAULT FALSE,
+	is_superuser BOOLEAN DEFAULT FALSE
+);
 
 CREATE TABLE IF NOT EXISTS questions (
-    _id UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
+    _id UUID UNIQUE DEFAULT gen_random_uuid(),
     id serial PRIMARY KEY,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW(),
     title VARCHAR (255) NOT NULL,
     content TEXT NOT NULL,
     tags TEXT [],
-    status QUESTION_STATUS NOT NULL DEFAULT 'Pending'
+    status QUESTION_STATUS DEFAULT 'Pending',
+    author INTEGER REFERENCES users (id)
 );

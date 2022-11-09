@@ -30,6 +30,12 @@ async fn main() {
 
     let db_filter = warp::any().map(move || db.clone());
 
+    let add_usr = warp::path!("users")
+        .and(warp::post())
+        .and(db_filter.clone())
+        .and(warp::body::json())
+        .and_then(routes::users::add_user);
+
     let list_quest = warp::path!("questions")
         .and(warp::get())
         .and(warp::query())
@@ -64,7 +70,8 @@ async fn main() {
         .and(db_filter.clone())
         .and_then(routes::questions::get_question);
 
-    let routes = list_quest
+    let routes = add_usr
+        .or(list_quest)
         .or(add_quest)
         .or(upd_quest)
         .or(del_quest)

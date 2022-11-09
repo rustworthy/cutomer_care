@@ -13,7 +13,7 @@ pub enum ServiceError {
     InvalidParamsRange,
     ObjectNotFound,
     DbQueryError,
-    ExternalApiError
+    ExternalApiError,
 }
 
 impl Reject for ServiceError {}
@@ -55,7 +55,7 @@ pub async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
 
     if let Some(ServiceError::ObjectNotFound) = r.find() {
         return Ok(warp::reply::with_status(
-            ServiceError::ObjectNotFound.to_string(),
+            String::default(),
             StatusCode::NOT_FOUND,
         ));
     }

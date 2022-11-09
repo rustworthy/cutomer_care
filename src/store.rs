@@ -146,8 +146,7 @@ impl Db {
             // author: row.get("author")
         });
         let res = q.fetch_one(&self.connection).await;
-        if let Err(e) = res {
-            event!(Level::ERROR, "Error fetching a question obj: {}", e);
+        if res.is_err() {
             return Err(ServiceError::ObjectNotFound);
         }
         Ok(res.unwrap())
