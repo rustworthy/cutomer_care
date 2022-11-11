@@ -5,7 +5,8 @@ use warp::{Rejection, Reply};
 use crate::store::base::Db;
 use crate::text_processing::filter_out_bad_words;
 use crate::types::pagination::Pagination;
-use crate::types::question::{QuestId, QuestIn};
+use crate::types::question::QuestIn;
+use crate::types::shared::Id;
 
 type Params = std::collections::HashMap<String, String>;
 
@@ -49,21 +50,21 @@ pub async fn add_question(db: Db, q: QuestIn) -> Result<impl Reply, Rejection> {
 
 pub async fn update_question(id: String, db: Db, q: QuestIn) -> Result<impl Reply, Rejection> {
     let q = censor_quest(q).await?;
-    match db.update(QuestId::from_str(&id).unwrap(), q).await {
+    match db.update(Id::from_str(&id).unwrap(), q).await {
         Ok(_) => Ok(warp::reply::with_status("", StatusCode::NO_CONTENT)),
         Err(e) => Err(warp::reject::custom(e)),
     }
 }
 
 pub async fn delete_question(id: String, db: Db) -> Result<impl Reply, Rejection> {
-    match db.delete(QuestId::from_str(&id).unwrap()).await {
+    match db.delete(Id::from_str(&id).unwrap()).await {
         Ok(_) => Ok(warp::reply::with_status("", StatusCode::NO_CONTENT)),
         Err(e) => Err(warp::reject::custom(e)),
     }
 }
 
 pub async fn get_question(id: String, db: Db) -> Result<impl Reply, Rejection> {
-    match db.get(QuestId::from_str(&id).unwrap()).await {
+    match db.get(Id::from_str(&id).unwrap()).await {
         Ok(quest) => Ok(warp::reply::json(&quest)),
         Err(e) => Err(warp::reject::custom(e)),
     }

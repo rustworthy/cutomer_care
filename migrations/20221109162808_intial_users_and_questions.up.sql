@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS users (
 	password TEXT NOT NULL,
 	first_name VARCHAR(64) NOT NULL,
     last_name VARCHAR(64) NOT NULL,
+	is_moderator BOOLEAN DEFAULT FALSE,
 	is_staff BOOLEAN DEFAULT FALSE,
 	is_superuser BOOLEAN DEFAULT FALSE
 );

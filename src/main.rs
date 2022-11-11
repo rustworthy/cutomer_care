@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate lazy_static;
+
 use dotenvy::dotenv;
 use error_handling::handle_err;
 use tracing_subscriber::fmt::format::FmtSpan;
@@ -34,7 +37,14 @@ async fn main() {
         .and(warp::post())
         .and(db_filter.clone())
         .and(warp::body::json())
+        .and(routes::auth::moderator_auth())
         .and_then(routes::users::add_user);
+
+    let login_usr = warp::path!("login")
+        .and(warp::post())
+        .and(db_filter.clone())
+        .and(warp::body::json())
+        .and_then(routes::auth::login);
 
     let list_quest = warp::path!("questions")
         .and(warp::get())
@@ -71,6 +81,7 @@ async fn main() {
         .and_then(routes::questions::get_question);
 
     let routes = add_usr
+        .or(login_usr)
         .or(list_quest)
         .or(add_quest)
         .or(upd_quest)

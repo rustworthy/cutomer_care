@@ -1,4 +1,5 @@
-use crate::types::question::{QuestId, QuestIn, QuestOut, QuestStatus};
+use crate::types::question::{QuestIn, QuestOut, QuestStatus};
+use crate::types::shared::Id;
 use error_handling::ServiceError;
 use std::str::FromStr;
 use tracing::{event, Level};
@@ -30,7 +31,7 @@ impl Db {
         Ok(res.unwrap())
     }
 
-    pub async fn add(&self, q: QuestIn) -> Result<QuestId, ServiceError> {
+    pub async fn add(&self, q: QuestIn) -> Result<Id, ServiceError> {
         let quest_status = q.parse_status();
         let q = sqlx::query(
             "INSERT INTO questions (title, content, tags, status) VALUES ($1, $2, $3, $4::question_status) RETURNING _id::text;",
@@ -39,7 +40,7 @@ impl Db {
         .bind(q.content)
         .bind(q.tags)
         .bind(quest_status);
-        let q = q.map(|row: PgRow| QuestId::from_str(row.get("_id")).unwrap());
+        let q = q.map(|row: PgRow| Id::from_str(row.get("_id")).unwrap());
 
         let res = q.fetch_one(&self.connection).await;
         if let Err(e) = res {
@@ -49,7 +50,7 @@ impl Db {
         Ok(res.unwrap())
     }
 
-    pub async fn update(&self, id: QuestId, q: QuestIn) -> Result<(), ServiceError> {
+    pub async fn update(&self, id: Id, q: QuestIn) -> Result<(), ServiceError> {
         let quest_status = q.parse_status();
         let q = sqlx::query(
             "UPDATE questions SET title = $1, content = $2, tags = $3, status = $4::question_status WHERE _id = uuid_or_null($5);",
@@ -72,7 +73,7 @@ impl Db {
         Ok(())
     }
 
-    pub async fn delete(&self, id: QuestId) -> Result<(), ServiceError> {
+    pub async fn delete(&self, id: Id) -> Result<(), ServiceError> {
         let q =
             sqlx::query("DELETE FROM questions WHERE _id = uuid_or_null($1);").bind(id.to_str());
         let rows_affected = match q.execute(&self.connection).await {
@@ -88,7 +89,7 @@ impl Db {
         Ok(())
     }
 
-    pub async fn get(&self, id: QuestId) -> Result<QuestOut, ServiceError> {
+    pub async fn get(&self, id: Id) -> Result<QuestOut, ServiceError> {
         let q =
             sqlx::query("SELECT _id::text, created_at::text, title, content, tags, status::text FROM questions WHERE _id = uuid_or_null($1);")
             .bind(id.to_str());
