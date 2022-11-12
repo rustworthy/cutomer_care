@@ -20,3 +20,9 @@ pub struct UserOut {
     pub is_staff: bool,
     pub is_superuser: bool,
 }
+
+#[derive(Deserialize)]
+pub struct UserTknDetails {
+    pub _id: String,
+    pub is_moderator: bool,
+}

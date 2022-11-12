@@ -54,12 +54,14 @@ async fn main() {
 
     let add_quest = warp::path!("questions")
         .and(warp::post())
+        .and(routes::auth::jwt_auth())
         .and(db_filter.clone())
         .and(warp::body::json())
         .and_then(routes::questions::add_question);
 
     let upd_quest = warp::put()
         .and(warp::path("questions"))
+        .and(routes::auth::jwt_auth())
         .and(warp::path::param::<String>())
         .and(warp::path::end())
         .and(db_filter.clone())
@@ -68,6 +70,7 @@ async fn main() {
 
     let del_quest = warp::delete()
         .and(warp::path("questions"))
+        .and(routes::auth::jwt_auth())
         .and(warp::path::param::<String>())
         .and(warp::path::end())
         .and(db_filter.clone())

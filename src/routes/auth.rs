@@ -1,19 +1,27 @@
+use std::future;
+
 use crate::{
     store::base::Db,
     types::{
         auth::{Claims, Creds, Token},
-        user::UserOut,
+        user::UserTknDetails,
     },
 };
+use chrono::{Duration, Utc};
 use error_handling::ServiceError;
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use tracing::instrument;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
+
+const TOKEN_EXP_MINS: i64 = 5;
 
 lazy_static! {
     static ref ENCODING_KEY: EncodingKey =
         EncodingKey::from_rsa_pem(include_bytes!("../../.jwt/jwtkey.pem"))
-            .expect("JWT encoding key file missing");
+            .expect("JWT encoding private key missing");
+    static ref DECODING_KEY: DecodingKey =
+        DecodingKey::from_rsa_pem(include_bytes!("../../.jwt/jwtkey_public.pem"))
+            .expect("JET decoding public key missing");
 }
 
 pub fn moderator_auth() -> impl Filter<Extract = (Option<String>,), Error = warp::Rejection> + Clone
@@ -21,9 +29,43 @@ pub fn moderator_auth() -> impl Filter<Extract = (Option<String>,), Error = warp
     warp::header::optional::<String>("Authorization")
 }
 
-async fn create_token_for_user(u: UserOut) -> Option<String> {
+pub fn jwt_auth() -> impl Filter<Extract = (UserTknDetails,), Error = warp::Rejection> + Clone {
+    warp::header::optional::<String>("Authorization").and_then(|token: Option<String>| {
+        if token.is_none() {
+            return future::ready(Err(warp::reject::custom(
+                ServiceError::AuthTokenMissingOrInvalid,
+            )));
+        }
+        match parse_token(token.unwrap()) {
+            None => future::ready(Err(warp::reject::custom(
+                ServiceError::AuthTokenMissingOrInvalid,
+            ))),
+            Some(user_details) => future::ready(Ok(user_details)),
+        }
+    })
+}
+
+fn parse_token(tkn: String) -> Option<UserTknDetails> {
+    let tkn_data = decode::<Claims>(
+        &tkn.replace("Token ", ""),
+        &DECODING_KEY,
+        &Validation::new(Algorithm::RS256),
+    );
+    if tkn_data.is_err() {
+        return None;
+    }
+    let claims = tkn_data.unwrap().claims;
+    Some({
+        UserTknDetails {
+            _id: claims.sub,
+            is_moderator: claims.moderator,
+        }
+    })
+}
+
+fn issue_token(u: UserTknDetails) -> Option<String> {
     let claims = Claims {
-        exp: 1000000,
+        exp: (Utc::now() + Duration::minutes(TOKEN_EXP_MINS)).timestamp() as usize,
         sub: u._id.clone(),
         moderator: u.is_moderator,
     };
@@ -40,8 +82,13 @@ pub async fn login(db: Db, creds: Creds) -> Result<impl Reply, Rejection> {
     if let Err(e) = user_fetched {
         return Err(warp::reject::custom(e));
     }
-    match create_token_for_user(user_fetched.unwrap()).await {
-        None => Err(warp::reject::custom(ServiceError::JWTEncoderErr)),
+    let u = user_fetched.unwrap();
+    let u = UserTknDetails {
+        _id: u._id,
+        is_moderator: u.is_moderator,
+    };
+    match issue_token(u) {
+        None => Err(warp::reject::custom(ServiceError::AuthTokenEncoderErr)),
         Some(token) => Ok(warp::reply::with_status(
             warp::reply::json(&Token { token }),
             StatusCode::CREATED,

@@ -45,6 +45,26 @@ pub struct QuestIn {
 }
 
 impl QuestIn {
+    pub fn authored_by(self, user_id: String) -> QuestByUser {
+        QuestByUser {
+            title: self.title,
+            content: self.content,
+            tags: self.tags,
+            status: self.status,
+            user_id,
+        }
+    }
+}
+
+pub struct QuestByUser {
+    pub title: String,
+    pub content: String,
+    pub tags: Option<Vec<String>>,
+    pub status: Option<QuestStatus>,
+    pub user_id: String,
+}
+
+impl QuestByUser {
     pub fn parse_status(&self) -> String {
         if self.status.is_none() {
             return QuestStatus::Pending.to_str();
@@ -61,5 +81,5 @@ pub struct QuestOut {
     pub content: String,
     pub tags: Option<Vec<String>>,
     pub status: QuestStatus,
-    // pub author: String
+    pub author: String,
 }

@@ -1,4 +1,4 @@
-use crate::types::question::{QuestIn, QuestOut, QuestStatus};
+use crate::types::question::{QuestByUser, QuestOut, QuestStatus};
 use crate::types::shared::Id;
 use error_handling::ServiceError;
 use std::str::FromStr;
@@ -11,7 +11,7 @@ use super::base::Db;
 
 impl Db {
     pub async fn list(&self, skip: i32, lim: Option<i32>) -> Result<Vec<QuestOut>, ServiceError> {
-        let q = sqlx::query("SELECT _id::text, created_at::text, title, content, tags, status::text FROM questions LIMIT $1 OFFSET $2;")
+        let q = sqlx::query("SELECT _id::text, created_at::text, title, content, tags, status::text, author::text FROM questions LIMIT $1 OFFSET $2;")
             .bind(lim)
             .bind(skip);
         let q = q.map(|row: PgRow| QuestOut {
@@ -21,7 +21,7 @@ impl Db {
             content: row.get("content"),
             tags: row.get("tags"),
             status: QuestStatus::from_str(row.get("status")).unwrap(),
-            // author: row.get("author")
+            author: row.get("author"),
         });
         let res = q.fetch_all(&self.connection).await;
         if let Err(e) = res {
@@ -31,18 +31,19 @@ impl Db {
         Ok(res.unwrap())
     }
 
-    pub async fn add(&self, q: QuestIn) -> Result<Id, ServiceError> {
+    pub async fn add(&self, q: QuestByUser) -> Result<Id, ServiceError> {
         let quest_status = q.parse_status();
-        let q = sqlx::query(
-            "INSERT INTO questions (title, content, tags, status) VALUES ($1, $2, $3, $4::question_status) RETURNING _id::text;",
+        let res = sqlx::query(
+            "INSERT INTO questions (title, content, tags, status, author) VALUES ($1, $2, $3, $4::question_status, uuid_or_null($5)) RETURNING _id::text;",
         )
         .bind(q.title)
         .bind(q.content)
         .bind(q.tags)
-        .bind(quest_status);
-        let q = q.map(|row: PgRow| Id::from_str(row.get("_id")).unwrap());
+        .bind(quest_status)
+        .bind(q.user_id)
+        .map(|row: PgRow| Id::from_str(row.get("_id")).unwrap())
+        .fetch_one(&self.connection).await;
 
-        let res = q.fetch_one(&self.connection).await;
         if let Err(e) = res {
             event!(Level::ERROR, "Add question query failed: {}", e);
             return Err(ServiceError::DbQueryError);
@@ -50,16 +51,24 @@ impl Db {
         Ok(res.unwrap())
     }
 
-    pub async fn update(&self, id: Id, q: QuestIn) -> Result<(), ServiceError> {
+    pub async fn update_question(
+        &self,
+        id: Id,
+        q: QuestByUser,
+        force: bool,
+    ) -> Result<(), ServiceError> {
         let quest_status = q.parse_status();
-        let q = sqlx::query(
-            "UPDATE questions SET title = $1, content = $2, tags = $3, status = $4::question_status WHERE _id = uuid_or_null($5);",
-        )
-        .bind(q.title)
-        .bind(q.content)
-        .bind(q.tags)
-        .bind(quest_status)
-        .bind(id.to_str());
+        let stmt = match force {
+            true => "UPDATE questions SET title = $1, content = $2, tags = $3, status = $4::question_status WHERE _id = uuid_or_null($5);",
+            false => "UPDATE questions SET title = $1, content = $2, tags = $3, status = $4::question_status WHERE _id = uuid_or_null($5) AND author = uuid_or_null($6);"
+        };
+        let q = sqlx::query(stmt)
+            .bind(q.title)
+            .bind(q.content)
+            .bind(q.tags)
+            .bind(quest_status)
+            .bind(id.to_str())
+            .bind(q.user_id);
         let rows_affected = match q.execute(&self.connection).await {
             Err(e) => {
                 event!(Level::ERROR, "Update question query failed: {}", e);
@@ -73,9 +82,14 @@ impl Db {
         Ok(())
     }
 
-    pub async fn delete(&self, id: Id) -> Result<(), ServiceError> {
-        let q =
-            sqlx::query("DELETE FROM questions WHERE _id = uuid_or_null($1);").bind(id.to_str());
+    pub async fn delete(&self, id: Id, user_id: String, force: bool) -> Result<(), ServiceError> {
+        let stmt = match force {
+            true => "DELETE FROM questions WHERE _id = uuid_or_null($1);",
+            false => {
+                "DELETE FROM questions WHERE _id = uuid_or_null($1) and author = uuid_or_null($2);"
+            }
+        };
+        let q = sqlx::query(stmt).bind(id.to_str()).bind(user_id);
         let rows_affected = match q.execute(&self.connection).await {
             Err(e) => {
                 event!(Level::ERROR, "Delete question query failed: {}", e);
@@ -91,7 +105,7 @@ impl Db {
 
     pub async fn get(&self, id: Id) -> Result<QuestOut, ServiceError> {
         let q =
-            sqlx::query("SELECT _id::text, created_at::text, title, content, tags, status::text FROM questions WHERE _id = uuid_or_null($1);")
+            sqlx::query("SELECT _id::text, created_at::text, title, content, tags, status::text, author::text FROM questions WHERE _id = uuid_or_null($1);")
             .bind(id.to_str());
         let q = q.map(|row: PgRow| QuestOut {
             _id: row.get("_id"),
@@ -100,7 +114,7 @@ impl Db {
             content: row.get("content"),
             tags: row.get("tags"),
             status: QuestStatus::from_str(row.get("status")).unwrap(),
-            // author: row.get("author")
+            author: row.get("author"),
         });
         let res = q.fetch_one(&self.connection).await;
         if res.is_err() {

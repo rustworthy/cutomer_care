@@ -17,7 +17,8 @@ pub enum ServiceError {
     ExternalApiError,
     AuthCredsMissing,
     ConflictInDb,
-    JWTEncoderErr,
+    AuthTokenEncoderErr,
+    AuthTokenMissingOrInvalid
 }
 
 impl Reject for ServiceError {}
@@ -34,7 +35,8 @@ impl std::fmt::Display for ServiceError {
             Self::ExternalApiError => write!(f, "Error fetching data from external service"),
             Self::AuthCredsMissing => write!(f, ""),
             Self::ConflictInDb => write!(f, "Already exists"),
-            Self::JWTEncoderErr => write!(f, "Case reported to admin. Please try again later.")
+            Self::AuthTokenEncoderErr => write!(f, "Case reported to admin. Please try again later."),
+            Self::AuthTokenMissingOrInvalid => write!(f, "")
         }
     }
 }
@@ -82,6 +84,13 @@ pub async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
         ));
     }
 
+    if let Some(ServiceError::AuthTokenMissingOrInvalid) = r.find() {
+        return Ok(warp::reply::with_status(
+            String::default(),
+            StatusCode::UNAUTHORIZED,
+        ));
+    }
+
     if let Some(ServiceError::ConflictInDb) = r.find() {
         return Ok(warp::reply::with_status(
             ServiceError::ConflictInDb.to_string(),
@@ -89,9 +98,9 @@ pub async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
         ));
     }
 
-    if let Some(ServiceError::JWTEncoderErr) = r.find() {
+    if let Some(ServiceError::AuthTokenEncoderErr) = r.find() {
         return Ok(warp::reply::with_status(
-            ServiceError::JWTEncoderErr.to_string(),
+            ServiceError::AuthTokenEncoderErr.to_string(),
             StatusCode::INTERNAL_SERVER_ERROR
         ));
     }

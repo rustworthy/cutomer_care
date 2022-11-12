@@ -24,7 +24,7 @@ impl super::base::Db {
             .bind(u.password)
             .bind(u.first_name)
             .bind(u.last_name)
-            .bind(u.is_moderator)
+            .bind(u.is_moderator.unwrap_or(false))
             .map(|row: PgRow| Id::from_str(row.get("_id")).unwrap())
             .fetch_one(&self.connection).await;
 

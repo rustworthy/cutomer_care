@@ -1,0 +1,291 @@
+{
+	"info": {
+		"_postman_id": "e35a5f9f-1fd6-4201-af8c-0f8d6b4f2135",
+		"name": "customer_care",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "create_common_user",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "",
+						"value": "",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"rob.pike.common@gmail.com\",\n    \"password\": \"concurrency\",\n    \"first_name\": \"Rob\",\n    \"last_name\": \"Pike\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "127.0.0.1:7878/users",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "7878",
+					"path": [
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create_moderator_user",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "4336839c9757963b739730a32ffba143e9422dc8b4c0ce7212db34698d9a995c",
+						"description": "A customer care service moderator auth key",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"rob.pike.moderator@gmail.com\",\n    \"password\": \"concurrency\",\n    \"first_name\": \"Rob\",\n    \"last_name\": \"Pike\",\n    \"is_moderator\": true\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "127.0.0.1:7878/users",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "7878",
+					"path": [
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "login_user",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"rob.pike.moderator@gmail.com\",\n    \"password\": \"concurrency\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "127.0.0.1:7878/login",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "7878",
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create_question",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJleHAiOjE2NjgyNTI4NDIsInN1YiI6IjQ2YTA2YTk2LTE5YzItNDBjMS05ODA0LTU4NTIxMmY1N2FhZiIsIm1vZGVyYXRvciI6ZmFsc2V9.gLDtWrVqgdE_r99B7N3LnzwROAu-gnHL58IzE8teA9zpM0KsRAXGD0TGqt14z5-RQEZJlDScqZMwyvDFd4ogoOCQZ04XTteUnfIyXmZTFfWKvrTsHyg-ra80gnJVXSFUICO02LgEzXfY08Egn49ChLr_sbAefqW5-HR3pTd0M6r1kn90tUoXN2NrquHJLiutptfTdIr1ZXhFRUO3PduR5o20wA9GFxt4uwRtRZbBFYtb5-_q0HFH6GZYfEss6VPClXHus6-aaaPHlGGqaWxZSIwZzEYc6Piog7WS1Rv9GRcAtxPfex69mY1HViifdH8e8Gra0KjY7rp-apqrbUM6LQ",
+						"description": "JWT",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"Title of a question/complaint/order\",\n    \"content\": \"If created by common user rather than moderator, all the bad words and swearing, including 'shit' will be censored with * by a 3rd party service. NB! the BadWords service we are currecntly using cannot process parenthesis\",\n    \"tags\": [\"this\", \"string\", \"array\", \"field\", \"is\", \"optional\"],\n    \"status\": \"Pending\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "127.0.0.1:7878/questions",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "7878",
+					"path": [
+						"questions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "list_some_questions",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "127.0.0.1:7878/questions?limit=1&offset=5",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "7878",
+					"path": [
+						"questions"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "1"
+						},
+						{
+							"key": "offset",
+							"value": "5"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get_question",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "127.0.0.1:7878/questions/ec4b27be-25c5-4c19-90f6-d8c1a7750b75",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "7878",
+					"path": [
+						"questions",
+						"ec4b27be-25c5-4c19-90f6-d8c1a7750b75"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "update_question",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJleHAiOjE2NjgyNTMwMzMsInN1YiI6ImYxNjNlZjkyLTFiY2YtNDNmMC1hYjQwLWM0N2RhZGE2N2M0MiIsIm1vZGVyYXRvciI6dHJ1ZX0.KftgC8TnLBplQycxANWyMfFZ1HJlv9dcGlJQpp_ffRBaqo1R5KymcYwGzjz1gmRtuGiyDhRzOLv4_UHmd1Jb4g7HLtnStQBduB1qJTGjPY3-fob1MC_ovMwlsG1xzX_HUzrQkoGoh_0VeL1kSPZZDibcSuFSDTCnKE0LxynEsjskOoH-P7L5LkbYE3bckIQ2wG5kOmS_3XZWkfG-PPtI6Ue7ubQbfLM0JUofXaC3zNSxJlX5wf3zSfqbAnRczE065EPT1Eb52Op-WX6fujUygrqjDoziv4RWgDtrRJDcqby9ed405NUh2rG7FIeJx_xF8Dgco8R0kSklYykIIc5aKQ",
+						"description": "JWT",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"Title of a question/complaint/order [RESOLVED]\",\n    \"content\": \"If updated by common user rather than moderator, all the bad words and swearing, including 'shit' will be censored with * by a 3rd party service. NB! the BadWords service we are currecntly using cannot process parenthesis\",\n    \"tags\": [\"this\", \"string\", \"array\", \"field\", \"is\", \"optional\"],\n    \"status\": \"Resolved\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "127.0.0.1:7878/questions/0d6a83ac-1f86-4889-807e-11d0637bae0e",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "7878",
+					"path": [
+						"questions",
+						"0d6a83ac-1f86-4889-807e-11d0637bae0e"
+					]
+				},
+				"description": "Common users can update only questions belonging to them, while moderators have permissions to update any question"
+			},
+			"response": []
+		},
+		{
+			"name": "list_all_questions",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "127.0.0.1:7878/questions",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "7878",
+					"path": [
+						"questions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "delete_question",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJleHAiOjE2NjgyNTU4NTAsInN1YiI6ImYxNjNlZjkyLTFiY2YtNDNmMC1hYjQwLWM0N2RhZGE2N2M0MiIsIm1vZGVyYXRvciI6dHJ1ZX0.nXpAaRNQ11wPZWQdBREQ5qezL3Z6MXeozbdE719JTSXCAnC-iombSRa5f94EHDHwVq7kQ7sBdSU9oDs-pFDJBAqxta2HvajubKzcsWi1roo6mhHpR2XVZbl7c_4JQUMwA5O7xB-skrD2JVPX0JvHKVtL3tzwECI_koyf7HTJjobMFnZCWMYYry89SXviOrcX8iUTEv60iZX876H2c76CmW9Ax-CY6MuL38JGbKauoDUW7nkLoQF3cPaHvxxzBM2VBLvoXNkQQMG7HtzQksG7-2eULFqDNdZBkMVO1RRfRujzXw8J3CILNz6OJlTFK14W5IJy0ja94ZioDSh4bACVJQ",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "127.0.0.1:7878/questions/1df2804e-91ad-4fe2-acdf-b3d4dacf8f20",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "7878",
+					"path": [
+						"questions",
+						"1df2804e-91ad-4fe2-acdf-b3d4dacf8f20"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

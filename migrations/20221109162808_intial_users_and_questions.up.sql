@@ -35,5 +35,5 @@ CREATE TABLE IF NOT EXISTS questions (
     content TEXT NOT NULL,
     tags TEXT [],
     status QUESTION_STATUS DEFAULT 'Pending',
-    author INTEGER REFERENCES users (id)
+    author UUID REFERENCES users (_id)
 );
