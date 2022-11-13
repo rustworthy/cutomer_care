@@ -22,8 +22,12 @@ pub async fn check_moderator(u: UserIn, key: Option<String>) -> Result<UserIn, S
     Ok(u)
 }
 
-pub async fn add_user(db: Db, u: UserIn, key: Option<String>) -> Result<impl Reply, Rejection> {
-    let u = match check_moderator(u, key).await {
+pub async fn add_user(
+    u: UserIn,
+    db: Db,
+    auth_key: Option<String>,
+) -> Result<impl Reply, Rejection> {
+    let u = match check_moderator(u, auth_key).await {
         Ok(u) => u,
         Err(e) => return Err(warp::reject::custom(e)),
     };
