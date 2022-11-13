@@ -12,12 +12,14 @@ services:
       - pgdata:/var/lib/postgresql/data
     env_file:
         - .env
+    ports:
+      - "127.0.0.1:5430:5432"
 
   server:
-    image: customer_care/prod/server
+    image: customer_care/dev/server
     build:
       context: .
-      dockerfile: ./Docker/server.prod.Dockerfile
+      dockerfile: ./Docker/server.dev.Dockerfile
     ports:
       - "127.0.0.1:7878:7878" 
 

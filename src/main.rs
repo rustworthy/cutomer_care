@@ -17,7 +17,7 @@ async fn main() {
     dotenv().ok();
 
     let log_filter =
-        std::env::var("RUST_LOG").unwrap_or_else(|_| "customer_care=info,warp=error".to_owned());
+        std::env::var("RUST_LOG").unwrap_or_else(|_| "customer_care=warn,warp=error".to_owned());
 
     tracing_subscriber::fmt()
         .with_env_filter(log_filter)
@@ -34,6 +34,7 @@ async fn main() {
 
     let db = store::base::Db::from_env().await;
     db.run_migrations().await;
+
     let db_filter = warp::any().map(move || db.clone());
 
     let add_usr = warp::path!("users")
@@ -98,5 +99,5 @@ async fn main() {
         .recover(handle_err)
         .with(warp::trace::request());
 
-    warp::serve(routes).run(([127, 0, 0, 1], 7878)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], 7878)).await;
 }

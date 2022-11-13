@@ -1,7 +1,6 @@
-.PHONY: clean serve test devdb
+.PHONY: clean serve test devdb dev/create dev/drop
 
 default: clean
-
 
 clean:
 	cargo fmt && cargo clippy
@@ -12,9 +11,8 @@ serve: clean
 test: clean
 	cargo test
 
+dev/create:
+	docker-compose -f docker-compose.dev.yaml up -d --build
 
-db/create:
-	docker-compose up -d --build db
-
-db/drop:
-	docker-compose down -v
+dev/drop:
+	docker-compose -f docker-compose.dev.yaml down -v
