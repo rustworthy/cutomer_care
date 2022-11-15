@@ -12,7 +12,7 @@ test: clean
 	cargo test
 
 dev/create:
-	docker-compose -f docker-compose.dev.yaml up -d --build
+	docker-compose -f Docker/docker-compose.dev.yaml up -d --build
 
 dev/drop:
-	docker-compose -f docker-compose.dev.yaml down -v
+	docker-compose -f Docker/docker-compose.dev.yaml down -v
