@@ -1,4 +1,4 @@
-.PHONY: help clean serve test dev/build dev/up-detached dev/up dev/down dev/drop prod/build
+.PHONY: help clean serve test dev/build dev/up-detached dev/up dev/down dev/drop prod/build ci/up-detached ci/down
 
 default: clean
 
@@ -36,4 +36,4 @@ ci/up-detached:
 	docker-compose -f Docker/compose.ci.yaml up -d
 
 ci/down:
-	docker-compose -f Docker/compose.ci.yaml up down
+	docker-compose -f Docker/compose.ci.yaml down
