@@ -11,9 +11,11 @@ use super::base::Db;
 
 impl Db {
     pub async fn list(&self, skip: i32, lim: Option<i32>) -> Result<Vec<QuestOut>, ServiceError> {
-        let q = sqlx::query("SELECT _id::text, created_at::text, title, content, tags, status::text, author::text FROM questions LIMIT $1 OFFSET $2;")
-            .bind(lim)
-            .bind(skip);
+        let q = sqlx::query(
+            "SELECT _id::text, created_at::text, title, content, tags, status::text, author::text FROM questions LIMIT $1 OFFSET $2;",
+        )
+        .bind(lim)
+        .bind(skip);
         let q = q.map(|row: PgRow| QuestOut {
             _id: row.get("_id"),
             created_at: row.get("created_at"),
@@ -51,12 +53,7 @@ impl Db {
         Ok(res.unwrap())
     }
 
-    pub async fn update_question(
-        &self,
-        id: Id,
-        q: QuestByUser,
-        force: bool,
-    ) -> Result<(), ServiceError> {
+    pub async fn update_question(&self, id: Id, q: QuestByUser, force: bool) -> Result<(), ServiceError> {
         let quest_status = q.parse_status();
         let stmt = match force {
             true => "UPDATE questions SET title = $1, content = $2, tags = $3, status = $4::question_status WHERE _id = uuid_or_null($5);",
@@ -85,9 +82,7 @@ impl Db {
     pub async fn delete(&self, id: Id, user_id: String, force: bool) -> Result<(), ServiceError> {
         let stmt = match force {
             true => "DELETE FROM questions WHERE _id = uuid_or_null($1);",
-            false => {
-                "DELETE FROM questions WHERE _id = uuid_or_null($1) and author = uuid_or_null($2);"
-            }
+            false => "DELETE FROM questions WHERE _id = uuid_or_null($1) and author = uuid_or_null($2);",
         };
         let q = sqlx::query(stmt).bind(id.to_str()).bind(user_id);
         let rows_affected = match q.execute(&self.connection).await {
@@ -104,9 +99,10 @@ impl Db {
     }
 
     pub async fn get(&self, id: Id) -> Result<QuestOut, ServiceError> {
-        let q =
-            sqlx::query("SELECT _id::text, created_at::text, title, content, tags, status::text, author::text FROM questions WHERE _id = uuid_or_null($1);")
-            .bind(id.to_str());
+        let q = sqlx::query(
+            "SELECT _id::text, created_at::text, title, content, tags, status::text, author::text FROM questions WHERE _id = uuid_or_null($1);",
+        )
+        .bind(id.to_str());
         let q = q.map(|row: PgRow| QuestOut {
             _id: row.get("_id"),
             created_at: row.get("created_at"),

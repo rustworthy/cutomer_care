@@ -19,10 +19,7 @@ impl std::str::FromStr for Id {
 
     fn from_str(id: &str) -> Result<Self, Self::Err> {
         match id.is_empty() {
-            true => Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "No id provided",
-            )),
+            true => Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "No id provided")),
             false => Ok(Id(id.to_string())),
         }
     }
