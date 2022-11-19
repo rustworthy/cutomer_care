@@ -34,19 +34,12 @@ pub async fn filter_out_bad_words(text: String) -> Result<String, ServiceError> 
     let client = reqwest::Client::new();
     let res = client
         .post("https://api.apilayer.com/bad_words?censor_character=*")
-        .header(
-            "APIKEY",
-            env::var("BAD_WORDS_SERVICE_API_KEY").unwrap_or_default(),
-        )
+        .header("APIKEY", env::var("BAD_WORDS_SERVICE_API_KEY").unwrap_or_default())
         .body(text)
         .send()
         .await
         .map_err(|e| {
-            event!(
-                Level::ERROR,
-                "Error fetching data from Bad Words serviceL {}",
-                e
-            );
+            event!(Level::ERROR, "Error fetching data from Bad Words serviceL {}", e);
             ServiceError::ExternalApiError
         })?;
 
@@ -56,7 +49,12 @@ pub async fn filter_out_bad_words(text: String) -> Result<String, ServiceError> 
             Ok(resp) => resp.message,
             Err(_) => return Err(ServiceError::ExternalApiError),
         };
-        event!(Level::ERROR, "Error occurred when calling external API (BadWords Service). Response status {}. Message: {}", status, msg);
+        event!(
+            Level::ERROR,
+            "Error occurred when calling external API (BadWords Service). Response status {}. Message: {}",
+            status,
+            msg
+        );
         return Err(ServiceError::ExternalApiError);
     }
 

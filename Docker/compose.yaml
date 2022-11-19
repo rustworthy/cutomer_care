@@ -1,0 +1,29 @@
+version: "3.2"
+
+services:
+  db:
+    image: customer_care/db
+    restart: unless-stopped
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    env_file: &env
+      - ../.env
+    container_name: db
+    networks:
+      - backend_prod
+
+  server:
+    image: customer_care/prod/server
+    ports:
+      - "127.0.0.1:7878:7878"
+    env_file:
+      *env
+    container_name: server
+    networks:
+      - backend_prod
+
+volumes: 
+  pgdata_prod:
+
+networks:
+  backend_prod:

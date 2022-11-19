@@ -1,0 +1,22 @@
+version: "3.2"
+
+services:
+  db:
+    image: customer_care/db
+    build:
+      context: database
+      dockerfile: database.Dockerfile
+  server:
+    image: customer_care/prod/server
+    build:
+      context: ..
+      dockerfile: ./Docker/server/server.Dockerfile
+
+    environment:
+      - CARGO_HOME=/app/cargo_home
+    volumes:
+      - cargo_data:/app/cargo_home
+
+
+volumes:
+  cargo_data:
