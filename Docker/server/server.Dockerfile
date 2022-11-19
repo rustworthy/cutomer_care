@@ -1,4 +1,4 @@
-FROM rust:latest as builder
+FROM rust:slim-buster as builder
 
 ENV TARGET x86_64-unknown-linux-musl
 
