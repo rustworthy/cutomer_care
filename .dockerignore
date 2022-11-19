@@ -1,10 +1,14 @@
-target
-
+.git
+.gitignore
 .vscode
 .misc
 .postman
+.env
 
-.gitignore
-docker-compose.yaml
+tests
+target
+Docker
+Jenkinsfile
 Makefile
 README.md
+rustfmt.toml

@@ -17,10 +17,7 @@ impl std::str::FromStr for QuestStatus {
             "Unresolved" => Ok(Self::Unresolved),
             "Pending" => Ok(Self::Pending),
             "Canceled" => Ok(Self::Canceled),
-            _ => Err(std::io::Error::new(
-                std::io::ErrorKind::Unsupported,
-                "Status not supported",
-            )),
+            _ => Err(std::io::Error::new(std::io::ErrorKind::Unsupported, "Status not supported")),
         }
     }
 }

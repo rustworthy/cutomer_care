@@ -1,4 +1,9 @@
 FROM rust:latest
+
+WORKDIR /app
+
 COPY . .
-RUN cargo build --release
-CMD ["./target/release/customer_care"]
+
+RUN cargo build
+
+CMD ["./target/debug/customer_care"]

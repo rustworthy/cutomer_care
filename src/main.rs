@@ -1,7 +1,3 @@
-#[macro_use]
-extern crate lazy_static;
-
-use dotenvy::dotenv;
 use error_handling::handle_err;
 use tracing_subscriber::fmt::format::FmtSpan;
 use warp::{http, Filter};
@@ -14,10 +10,7 @@ mod types;
 
 #[tokio::main]
 async fn main() {
-    dotenv().ok();
-
-    let log_filter =
-        std::env::var("RUST_LOG").unwrap_or_else(|_| "customer_care=warn,warp=error".to_owned());
+    let log_filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "customer_care=warn,warp=error".to_owned());
 
     tracing_subscriber::fmt()
         .with_env_filter(log_filter)
@@ -29,26 +22,28 @@ async fn main() {
         .allow_origins(vec!["http://front-end-service:3000"])
         .allow_header("content-type");
 
-    let auth_provider = auth_providers::jwt::JWTAuth;
-    let auth_provider_filter = warp::any().map(move || auth_provider);
+    let token_issuer = auth_providers::jwt::JWTAuth::new().expect("JWT auth key issue");
+    let token_checker = token_issuer.clone();
 
     let db = store::base::Db::from_env().await;
     db.run_migrations().await;
-
     let db_filter = warp::any().map(move || db.clone());
+
+    let moderator_key = std::env::var("MODERATOR_AUTH_KEY").expect("MODERATOR_AUTH_KEY");
 
     let add_usr = warp::path!("users")
         .and(warp::post())
         .and(warp::body::json())
-        .and(db_filter.clone())
         .and(routes::auth::parse_auth_headers())
+        .and(db_filter.clone())
+        .and(warp::any().map(move || moderator_key.clone()))
         .and_then(routes::users::add_user);
 
     let login_usr = warp::path!("login")
         .and(warp::post())
         .and(warp::body::json())
         .and(db_filter.clone())
-        .and(auth_provider_filter)
+        .and(warp::any().map(move || token_issuer.clone()))
         .and_then(routes::auth::login);
 
     let list_quest = warp::path!("questions")
@@ -59,14 +54,14 @@ async fn main() {
 
     let add_quest = warp::path!("questions")
         .and(warp::post())
-        .and(routes::auth::authenticate(auth_provider))
+        .and(routes::auth::authenticate(token_checker.clone()))
         .and(db_filter.clone())
         .and(warp::body::json())
         .and_then(routes::questions::add_question);
 
     let upd_quest = warp::put()
         .and(warp::path("questions"))
-        .and(routes::auth::authenticate(auth_provider))
+        .and(routes::auth::authenticate(token_checker.clone()))
         .and(warp::path::param::<String>())
         .and(warp::path::end())
         .and(db_filter.clone())
@@ -75,7 +70,7 @@ async fn main() {
 
     let del_quest = warp::delete()
         .and(warp::path("questions"))
-        .and(routes::auth::authenticate(auth_provider))
+        .and(routes::auth::authenticate(token_checker))
         .and(warp::path::param::<String>())
         .and(warp::path::end())
         .and(db_filter.clone())

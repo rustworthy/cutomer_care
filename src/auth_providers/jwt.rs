@@ -1,21 +1,23 @@
+use std::env::VarError;
+
 use super::base::AuthProvider;
 use crate::types::{auth::Claims, user::UserTknDetails};
 use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 
 const TOKEN_EXP_MINS: i64 = 5;
 
-lazy_static! {
-    static ref ENCODING_KEY: EncodingKey =
-        EncodingKey::from_rsa_pem(include_bytes!("../../.jwt/jwtkey.pem"))
-            .expect("JWT encoding private key missing");
-    static ref DECODING_KEY: DecodingKey =
-        DecodingKey::from_rsa_pem(include_bytes!("../../.jwt/jwtkey_public.pem"))
-            .expect("JET decoding public key missing");
+#[derive(Clone, Debug)]
+pub struct JWTAuth {
+    secret: String,
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct JWTAuth;
+impl JWTAuth {
+    pub fn new() -> Result<Self, VarError> {
+        let secret = std::env::var("AUTH_SECRET")?;
+        Ok(JWTAuth { secret })
+    }
+}
 
 impl AuthProvider for JWTAuth {
     fn issue_token(&self, u: UserTknDetails) -> Option<String> {
@@ -24,7 +26,7 @@ impl AuthProvider for JWTAuth {
             sub: u._id.clone(),
             moderator: u.is_moderator,
         };
-        let tkn = encode(&Header::new(Algorithm::RS256), &claims, &ENCODING_KEY);
+        let tkn = encode(&Header::default(), &claims, &EncodingKey::from_secret(self.secret.as_bytes()));
         if tkn.is_err() {
             return None;
         }
@@ -34,8 +36,8 @@ impl AuthProvider for JWTAuth {
     fn parse_token(&self, tkn: String) -> Option<UserTknDetails> {
         let tkn_data = decode::<Claims>(
             &tkn.replace("Token ", ""),
-            &DECODING_KEY,
-            &Validation::new(Algorithm::RS256),
+            &DecodingKey::from_secret(self.secret.as_bytes()),
+            &Validation::default(),
         );
         if tkn_data.is_err() {
             return None;
