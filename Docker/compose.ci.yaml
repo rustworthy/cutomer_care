@@ -1,0 +1,16 @@
+version: "3.2"
+
+services:
+  db:
+    image: customer_care/db
+    env_file: &env
+      - ../.env
+    container_name: db
+
+  server:
+    image: customer_care/prod/server
+    ports:
+      - "7878:7878"
+    env_file:
+      *env
+    container_name: server
