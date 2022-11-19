@@ -129,7 +129,7 @@ fi
 
 echo "Creating a moderator user"
 create_moderator_user_operation_status_code=$(curl -o /dev/null -w "%{http_code}" --location --request POST $USERS_ENDPOINT \
---header "Authorization: jenkins" \
+--header "Authorization: $MODERATOR_AUTH_KEY" \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "email": "rob.pike.moderator@gmail.com",
