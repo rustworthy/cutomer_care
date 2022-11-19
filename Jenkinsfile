@@ -3,28 +3,27 @@ pipeline {
   stages {
     stage('Build') {
       steps {
-        sh 'make dev/build'
+        sh 'make prod/build'
       }
     }
     stage('Integration') {
+      environment {
+        NETWORK_ALIAS="docker"
+        MODERATOR_AUTH_KEY="jenkins"
+      }
       steps {
         withCredentials([file(credentialsId: 'CUSTOMER_CARE_DOT_ENV', variable: 'ENV_FILE')]) {
           sh 'cp $ENV_FILE .env'
         }
-        sh 'make dev/up-detached && sleep 5'
-        sh 'chmod +x -R tests && docker cp tests server:/app && docker exec server ./tests/run_tests.sh'
-        sh 'make dev/drop'
-      }
-    }
-    stage('Build Release') {
-      steps {
-        sh 'make prod/build'
+        sh 'make ci/up-detached && sleep 5'
+        sh "chmod +x -R tests && ./tests/run_tests.sh $NETWORK_ALIAS"
+        sh 'make ci/down'
       }
     }
   }
   post {
     always {
-      sh 'docker system prune --force --volumes'
+      sh 'docker system prune --force'
       // deleteDir()
     }
   }

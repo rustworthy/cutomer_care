@@ -31,11 +31,9 @@ dev/drop:
 prod/build:
 	docker-compose -f Docker/compose.build.yaml build
 
-prod/up:
-	docker-compose -f Docker/compose.yaml up
+# CI
+ci/up-detached:
+	docker-compose -f Docker/compose.ci.yaml up -d
 
-prod/down:
-	docker-compose -f Docker/compose.yaml down
-
-prod/drop:
-	docker-compose -f Docker/compose.yaml down -v
+ci/down:
+	docker-compose -f Docker/compose.ci.yaml up down

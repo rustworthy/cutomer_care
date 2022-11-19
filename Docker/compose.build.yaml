@@ -6,6 +6,7 @@ services:
     build:
       context: database
       dockerfile: database.Dockerfile
+
   server:
     image: customer_care/prod/server
     build:
