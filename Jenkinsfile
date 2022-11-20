@@ -3,7 +3,9 @@ pipeline {
   stages {
     stage('Build') {
       steps {
-        sh 'make prod/build'
+        retry(3) {
+          sh 'make prod/build'
+        }
       }
     }
     stage('Integration') {
@@ -25,14 +27,22 @@ pipeline {
     stage('Push Image') {
       environment {
         CONTAINER_REGISTRY_URL="https://index.docker.io/v1/"
+
         SERVER_SRC="customer_care/prod/server:latest"
         SERVER_TGT="rustworthy/customer_care:$BUILD_ID"
+        SERVER_TGT_TIP="rustworthy/customer_care:latest"
+
+        DB_SRC="customer_care/db:latest"
+        DB_TGT="rustworthy/postgres:$BUILD_ID"
+        DB_TGT_TIP="rustworthy/postgres:latest"
       }
       steps {
         withDockerRegistry(credentialsId: 'CUSTOMER_CARE_CONTAINER_REGISTRY', url: CONTAINER_REGISTRY_URL) {
-          sh "docker tag $SERVER_SRC $SERVER_TGT"
-          sh "docker push $SERVER_TGT"
-          sh "docker image rm $SERVER_TGT"
+          sh "docker tag $SERVER_SRC $SERVER_TGT && docker push $SERVER_TGT && docker image rm $SERVER_TGT"
+          sh "docker tag $SERVER_SRC $SERVER_TGT_TIP && docker push $SERVER_TGT_TIP && docker image rm $SERVER_TGT_TIP"
+
+          sh "docker tag $DB_SRC $DB_TGT && docker push $DB_TGT && docker image rm $DB_TGT"
+          sh "docker tag $DB_SRC $DB_TGT_TIP && docker push $DB_TGT_TIP && docker image rm $DB_TGT_TIP"
         }
       }
     }
