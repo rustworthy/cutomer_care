@@ -28,12 +28,14 @@ pipeline {
       environment {
         CONTAINER_REGISTRY_URL="https://index.docker.io/v1/"
 
+        DT_UTC="\$(date '+%Y-%m-%d-%H-%M')"
+  
         SERVER_SRC="customer_care/prod/server:latest"
-        SERVER_TGT="rustworthy/customer_care:$BUILD_ID"
+        SERVER_TGT="rustworthy/customer_care:$BUILD_ID-$DT_UTC"
         SERVER_TGT_TIP="rustworthy/customer_care:latest"
 
         DB_SRC="customer_care/db:latest"
-        DB_TGT="rustworthy/postgres:$BUILD_ID"
+        DB_TGT="rustworthy/postgres:$BUILD_ID-$DT_UTC"
         DB_TGT_TIP="rustworthy/postgres:latest"
       }
       steps {
@@ -50,7 +52,6 @@ pipeline {
   post {
     always {
       sh 'docker logout'
-      sh 'docker system prune --force'
     }
     success {
       deleteDir()
