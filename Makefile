@@ -35,5 +35,5 @@ prod/build:
 ci/up-detached:
 	docker-compose -f Docker/compose.ci.yaml up -d
 
-ci/down:
-	docker-compose -f Docker/compose.ci.yaml down
+ci/drop:
+	docker-compose -f Docker/compose.ci.yaml down -v
