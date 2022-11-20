@@ -25,6 +25,9 @@ pipeline {
       }
     }
     stage('Push Image') {
+      when {
+        branch "master"
+      }
       environment {
         CONTAINER_REGISTRY_URL="https://index.docker.io/v1/"
 
