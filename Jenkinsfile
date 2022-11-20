@@ -20,7 +20,7 @@ pipeline {
           sh 'cp $ENV_FILE .env'
           sh 'make ci/up-detached && sleep 5'
           sh "chmod +x -R tests && ./tests/run_tests.sh $NETWORK_ALIAS"
-          sh 'make ci/down'
+          sh 'make ci/drop'
         }
       }
     }
@@ -58,6 +58,9 @@ pipeline {
     }
     success {
       deleteDir()
+    }
+    failure {
+      sh 'make ci/drop'
     }
   }
 }
