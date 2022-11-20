@@ -123,7 +123,7 @@ list_questions_resp=$(curl --location --request GET $QUESTIONS_ENDPOINT)
 if [ ${#list_questions_resp} != ${#EMPTY_BODY} ]
 then
     echo "########################## ERROR ##########################"
-    echo "Listing questions error. Should be an empty array after the test run."
+    echo "Listing questions error. Should be an empty array after the test run, but got: $list_questions_resp"
     EXIT_STATUS=1
 fi
 
