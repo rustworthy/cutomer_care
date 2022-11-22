@@ -12,12 +12,12 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --target x86_64-unknown-linux-musl --release --recipe-path recipe.json
 
 COPY . .
-RUN cargo build --target x86_64-unknown-linux-musl --release
+RUN cargo build --target x86_64-unknown-linux-musl --release --bin customer_care
 
 ################################################################################
 FROM scratch
 
 WORKDIR /app
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/customer_care .
+COPY --from=builder /target/x86_64-unknown-linux-musl/release/customer_care .
 
 CMD ["./customer_care"]
