@@ -32,7 +32,6 @@ pipeline {
           sh 'cp $ENV_FILE .env'
           sh 'make ci/up-detached && sleep 5'
           sh "chmod +x -R tests && ./tests/run_tests.sh $NETWORK_ALIAS"
-          sh 'make ci/drop'
         }
       }
     }
@@ -43,12 +42,14 @@ pipeline {
       environment {
         CONTAINER_REGISTRY_URL="https://index.docker.io/v1/"
 
+        TAG="$BUILD_ID-$BUILD_TIMESTAMP"
+
         SERVER_SRC="customer_care/prod/server:latest"
-        SERVER_TGT="rustworthy/customer_care:$BUILD_ID"
+        SERVER_TGT="rustworthy/customer_care:$TAG"
         SERVER_TGT_TIP="rustworthy/customer_care:latest"
 
         DB_SRC="customer_care/db:latest"
-        DB_TGT="rustworthy/postgres:$BUILD_ID"
+        DB_TGT="rustworthy/postgres:$TAG"
         DB_TGT_TIP="rustworthy/postgres:latest"
       }
       steps {
@@ -65,11 +66,9 @@ pipeline {
   }
   post {
     always {
+      sh 'make ci/drop'
       sh 'docker logout'
       deleteDir()
-    }
-    failure {
-      sh 'make ci/drop'
     }
   }
 }
