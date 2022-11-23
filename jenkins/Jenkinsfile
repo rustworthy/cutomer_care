@@ -32,7 +32,6 @@ pipeline {
           sh 'cp $ENV_FILE .env'
           sh 'make ci/up-detached && sleep 5'
           sh "chmod +x -R tests && ./tests/run_tests.sh $NETWORK_ALIAS"
-          sh 'make ci/drop'
         }
       }
     }
@@ -43,21 +42,22 @@ pipeline {
       environment {
         CONTAINER_REGISTRY_URL="https://index.docker.io/v1/"
 
+        TAG="$BUILD_ID-$BUILD_TIMESTAMP"
+
         SERVER_SRC="customer_care/prod/server:latest"
-        SERVER_TGT="rustworthy/customer_care:$BUILD_ID"
+        SERVER_TGT="rustworthy/customer_care:$TAG"
         SERVER_TGT_TIP="rustworthy/customer_care:latest"
 
         DB_SRC="customer_care/db:latest"
-        DB_TGT="rustworthy/postgres:$BUILD_ID"
+        DB_TGT="rustworthy/postgres:$TAG"
         DB_TGT_TIP="rustworthy/postgres:latest"
       }
       steps {
         withDockerRegistry(credentialsId: 'CUSTOMER_CARE_CONTAINER_REGISTRY', url: CONTAINER_REGISTRY_URL) {
-          sh "DT_UTC=\$(date '+%Y-%m-%d-%H-%M')"
-          sh "docker tag $SERVER_SRC $SERVER_TGT-$DT_UTC && docker push $SERVER_TGT-$DT_UTC && docker image rm $SERVER_TGT-$DT_UTC"
+          sh "docker tag $SERVER_SRC $SERVER_TGT && docker push $SERVER_TGT && docker image rm $SERVER_TGT"
           sh "docker tag $SERVER_SRC $SERVER_TGT_TIP && docker push $SERVER_TGT_TIP && docker image rm $SERVER_TGT_TIP"
 
-          sh "docker tag $DB_SRC $DB_TGT-$DT_UTC && docker push $DB_TGT-$DT_UTC && docker image rm $DB_TGT-$DT_UTC"
+          sh "docker tag $DB_SRC $DB_TGT && docker push $DB_TGT && docker image rm $DB_TGT"
           sh "docker tag $DB_SRC $DB_TGT_TIP && docker push $DB_TGT_TIP && docker image rm $DB_TGT_TIP"
         }
       }
@@ -65,11 +65,9 @@ pipeline {
   }
   post {
     always {
+      sh 'make ci/drop'
       sh 'docker logout'
       deleteDir()
-    }
-    failure {
-      sh 'make ci/drop'
     }
   }
 }
