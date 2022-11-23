@@ -1,24 +1,20 @@
-FROM rust:slim-buster as builder
-
-ENV TARGET x86_64-unknown-linux-musl
-
-RUN rustup target add ${TARGET}
-RUN apt-get update -y 
-RUN apt-get install -y musl-tools musl-dev build-essential gcc-x86-64-linux-gnu
+FROM rustworthy/rustbuilder AS planner
 
 WORKDIR /app
-
 COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
 
-RUN cargo build --target ${TARGET} --release
+
+FROM rustworthy/rustbuilder as builder
+
+WORKDIR /app
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --target x86_64-unknown-linux-musl --release --recipe-path recipe.json
+COPY . .
+RUN cargo build --target x86_64-unknown-linux-musl --release --bin customer_care
 
 
 FROM scratch
 
-ENV TARGET x86_64-unknown-linux-musl
-
-WORKDIR /app
-
-COPY --from=builder /app/target/${TARGET}/release/customer_care ./
-
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/customer_care .
 CMD ["./customer_care"]

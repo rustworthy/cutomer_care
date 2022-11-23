@@ -11,6 +11,9 @@ serve: clean
 test:
 	cargo test
 
+builder:
+	docker build -t rustworthy/rustbuilder . -f Docker/builder/rust.Dockerfile && docker push rustworthy/rustbuilder
+
 # DEV
 dev/build:
 	docker-compose -f Docker/compose.dev.build.yaml build
