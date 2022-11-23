@@ -54,11 +54,10 @@ pipeline {
       }
       steps {
         withDockerRegistry(credentialsId: 'CUSTOMER_CARE_CONTAINER_REGISTRY', url: CONTAINER_REGISTRY_URL) {
-          sh "DT_UTC=\$(date '+%Y-%m-%d-%H-%M')"
-          sh "docker tag $SERVER_SRC $SERVER_TGT-$DT_UTC && docker push $SERVER_TGT-$DT_UTC && docker image rm $SERVER_TGT-$DT_UTC"
+          sh "docker tag $SERVER_SRC $SERVER_TGT && docker push $SERVER_TGT && docker image rm $SERVER_TGT"
           sh "docker tag $SERVER_SRC $SERVER_TGT_TIP && docker push $SERVER_TGT_TIP && docker image rm $SERVER_TGT_TIP"
 
-          sh "docker tag $DB_SRC $DB_TGT-$DT_UTC && docker push $DB_TGT-$DT_UTC && docker image rm $DB_TGT-$DT_UTC"
+          sh "docker tag $DB_SRC $DB_TGT && docker push $DB_TGT && docker image rm $DB_TGT"
           sh "docker tag $DB_SRC $DB_TGT_TIP && docker push $DB_TGT_TIP && docker image rm $DB_TGT_TIP"
         }
       }
