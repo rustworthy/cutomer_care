@@ -12,12 +12,3 @@ services:
     build:
       context: ..
       dockerfile: ./Docker/server/server.Dockerfile
-
-    environment:
-      - CARGO_HOME=/app/cargo_home
-    volumes:
-      - cargo_data:/app/cargo_home
-
-
-volumes:
-  cargo_data:
