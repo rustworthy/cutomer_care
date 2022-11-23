@@ -1,7 +1,5 @@
 FROM rustworthy/rustbuilder AS planner
 
-WORKDIR /app
-
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
@@ -17,7 +15,5 @@ RUN cargo build --target x86_64-unknown-linux-musl --release --bin customer_care
 ################################################################################
 FROM scratch
 
-WORKDIR /app
 COPY --from=builder /target/x86_64-unknown-linux-musl/release/customer_care .
-
 CMD ["./customer_care"]
