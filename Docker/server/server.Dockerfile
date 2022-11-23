@@ -6,7 +6,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 ################################################################################
 FROM rustworthy/rustbuilder as builder
 
-COPY --from=planner /app/recipe.json recipe.json
+COPY --from=planner /recipe.json recipe.json
 RUN cargo chef cook --target x86_64-unknown-linux-musl --release --recipe-path recipe.json
 
 COPY . .
