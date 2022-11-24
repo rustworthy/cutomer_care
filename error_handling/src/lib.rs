@@ -18,7 +18,7 @@ pub enum ServiceError {
     AuthCredsMissing,
     ConflictInDb,
     AuthTokenEncoderErr,
-    AuthTokenMissingOrInvalid
+    AuthTokenMissingOrInvalid,
 }
 
 impl Reject for ServiceError {}
@@ -36,24 +36,18 @@ impl std::fmt::Display for ServiceError {
             Self::AuthCredsMissing => write!(f, ""),
             Self::ConflictInDb => write!(f, "Already exists"),
             Self::AuthTokenEncoderErr => write!(f, "Case reported to admin. Please try again later."),
-            Self::AuthTokenMissingOrInvalid => write!(f, "")
+            Self::AuthTokenMissingOrInvalid => write!(f, ""),
         }
     }
 }
 
 pub async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
     if let Some(err) = r.find::<CorsForbidden>() {
-        return Ok(warp::reply::with_status(
-            err.to_string(),
-            StatusCode::FORBIDDEN,
-        ));
+        return Ok(warp::reply::with_status(err.to_string(), StatusCode::FORBIDDEN));
     }
 
     if let Some(err) = r.find::<BodyDeserializeError>() {
-        return Ok(warp::reply::with_status(
-            err.to_string(),
-            StatusCode::UNPROCESSABLE_ENTITY,
-        ));
+        return Ok(warp::reply::with_status(err.to_string(), StatusCode::UNPROCESSABLE_ENTITY));
     };
 
     if let Some(ServiceError::EnvVarUnset) = r.find() {
@@ -71,24 +65,15 @@ pub async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
     }
 
     if let Some(ServiceError::ObjectNotFound) = r.find() {
-        return Ok(warp::reply::with_status(
-            String::default(),
-            StatusCode::NOT_FOUND,
-        ));
+        return Ok(warp::reply::with_status(String::default(), StatusCode::NOT_FOUND));
     }
 
     if let Some(ServiceError::AuthCredsMissing) = r.find() {
-        return Ok(warp::reply::with_status(
-            String::default(),
-            StatusCode::UNAUTHORIZED,
-        ));
+        return Ok(warp::reply::with_status(String::default(), StatusCode::UNAUTHORIZED));
     }
 
     if let Some(ServiceError::AuthTokenMissingOrInvalid) = r.find() {
-        return Ok(warp::reply::with_status(
-            String::default(),
-            StatusCode::UNAUTHORIZED,
-        ));
+        return Ok(warp::reply::with_status(String::default(), StatusCode::UNAUTHORIZED));
     }
 
     if let Some(ServiceError::ConflictInDb) = r.find() {
@@ -101,19 +86,13 @@ pub async fn handle_err(r: Rejection) -> Result<impl Reply, Rejection> {
     if let Some(ServiceError::AuthTokenEncoderErr) = r.find() {
         return Ok(warp::reply::with_status(
             ServiceError::AuthTokenEncoderErr.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR
+            StatusCode::INTERNAL_SERVER_ERROR,
         ));
     }
 
     if let Some(err) = r.find::<ServiceError>() {
-        return Ok(warp::reply::with_status(
-            err.to_string(),
-            StatusCode::UNPROCESSABLE_ENTITY,
-        ));
+        return Ok(warp::reply::with_status(err.to_string(), StatusCode::UNPROCESSABLE_ENTITY));
     }
 
-    Ok(warp::reply::with_status(
-        "Route not found".to_string(),
-        StatusCode::NOT_FOUND,
-    ))
+    Ok(warp::reply::with_status("Route not found".to_string(), StatusCode::NOT_FOUND))
 }

@@ -3,7 +3,7 @@
 default: clean
 
 clean:
-	cargo fmt && cargo clippy
+	cargo fmt --all --check && cargo clippy -- -D warnings
 
 serve: clean
 	fuser -k 7878/tcp || true && cargo run

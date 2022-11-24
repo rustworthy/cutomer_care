@@ -1,33 +1,17 @@
 name: audit
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 1/7 * * *'
   push:
-    branches:
-      - develop
-      - master
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
 
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - name: Meta
-        run: |
-          echo "🎉 Job triggered by a ${{ github.event_name }} event."
-          echo "🐧 Job is running on a ${{ runner.os }}"
-          echo "🔎 Repo is ${{ github.repository }}. Branch name is ${{ github.ref }}"
-
-      - name: Check out
-        uses: actions/checkout@v3
-
-      - name: List sources
-        run: |
-          echo "💡 The ${{ github.repository }} repository has been cloned to the runner. Sources are:"
-          ls ${{ github.workspace }}
-
-      - name: Audit
-        uses: actions-rs/audit-check@v1
+      - uses: actions/checkout@v3
+      - uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - run: echo "🍏 This job's status is ${{ job.status }}."
