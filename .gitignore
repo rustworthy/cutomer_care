@@ -1,6 +1,5 @@
 /target
 .vscode
-.misc
 
 *.log
 .env
