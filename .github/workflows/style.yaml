@@ -15,4 +15,4 @@ jobs:
             toolchain: stable
             profile: minimal
             components: rustfmt, clippy
-      - run: make clean
+      - run: make check

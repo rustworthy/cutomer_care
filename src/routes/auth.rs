@@ -19,7 +19,7 @@ pub fn parse_auth_headers() -> impl Filter<Extract = (Option<String>,), Error = 
 pub fn authenticate<T: AuthProvider>(
     auth_provider: T,
 ) -> impl Filter<Extract = (UserTknDetails,), Error = warp::Rejection> + Clone {
-    warp::header::optional::<String>("Authorization").and_then(move |token: Option<String>| {
+    parse_auth_headers().and_then(move |token: Option<String>| {
         if token.is_none() {
             return future::ready(Err(warp::reject::custom(ServiceError::AuthTokenMissingOrInvalid)));
         }
@@ -32,16 +32,17 @@ pub fn authenticate<T: AuthProvider>(
 
 #[instrument]
 pub async fn login<T: AuthProvider>(creds: Creds, db: Db, auth_provider: T) -> Result<impl Reply, Rejection> {
-    let u = db.get_user_by_creds(creds).await.map_err(warp::reject::custom)?;
+    let user = db.get_user_by_creds(creds).await.map_err(warp::reject::custom)?;
     let u = UserTknDetails {
-        _id: u._id,
-        is_moderator: u.is_moderator,
+        _id: user._id,
+        is_moderator: user.is_moderator,
     };
-    match auth_provider.issue_token(u) {
-        None => Err(warp::reject::custom(ServiceError::AuthTokenEncoderErr)),
-        Some(token) => Ok(warp::reply::with_status(
-            warp::reply::json(&Token { token }),
-            StatusCode::CREATED,
-        )),
-    }
+    let token = auth_provider
+        .issue_token(u)
+        .ok_or_else(|| warp::reject::custom(ServiceError::AuthTokenEncoderErr))?;
+
+    Ok(warp::reply::with_status(
+        warp::reply::json(&Token { token }),
+        StatusCode::CREATED,
+    ))
 }

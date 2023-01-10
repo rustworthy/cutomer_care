@@ -1,8 +1,6 @@
-.PHONY: help clean serve test dev/build dev/up-detached dev/up dev/down dev/drop prod/build ci/up-detached ci/down
-
 default: clean
 
-clean:
+check:
 	cargo fmt --all --check && cargo clippy -- -D warnings
 
 serve: clean

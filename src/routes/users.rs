@@ -28,8 +28,8 @@ pub async fn add_user(
     let new_user = validate_moderator(new_user, auth_headers, moderator_key)
         .await
         .map_err(warp::reject::custom)?;
-
     let inserted_id = db.add_user(new_user).await.map_err(warp::reject::custom)?;
+
     Ok(warp::reply::with_status(
         warp::reply::json(&inserted_id.as_dict()),
         StatusCode::CREATED,
