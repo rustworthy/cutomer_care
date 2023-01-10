@@ -10,7 +10,7 @@ use sqlx::Row;
 use super::base::Db;
 
 impl Db {
-    pub async fn list(&self, skip: i32, lim: Option<i32>) -> Result<Vec<QuestOut>, ServiceError> {
+    pub async fn list_questions(&self, skip: i32, lim: Option<i32>) -> Result<Vec<QuestOut>, ServiceError> {
         let q = sqlx::query(
             "SELECT _id::text, created_at::text, title, content, tags, status::text, author::text FROM questions LIMIT $1 OFFSET $2;",
         )
@@ -33,7 +33,7 @@ impl Db {
         Ok(res.unwrap())
     }
 
-    pub async fn add(&self, q: QuestByUser) -> Result<Id, ServiceError> {
+    pub async fn add_question(&self, q: QuestByUser) -> Result<Id, ServiceError> {
         let quest_status = q.parse_status();
         let res = sqlx::query(
             "INSERT INTO questions (title, content, tags, status, author) VALUES ($1, $2, $3, $4::question_status, uuid_or_null($5)) RETURNING _id::text;",
@@ -79,7 +79,7 @@ impl Db {
         Ok(())
     }
 
-    pub async fn delete(&self, id: Id, user_id: String, force: bool) -> Result<(), ServiceError> {
+    pub async fn delete_question(&self, id: Id, user_id: String, force: bool) -> Result<(), ServiceError> {
         let stmt = match force {
             true => "DELETE FROM questions WHERE _id = uuid_or_null($1);",
             false => "DELETE FROM questions WHERE _id = uuid_or_null($1) and author = uuid_or_null($2);",
@@ -98,7 +98,7 @@ impl Db {
         Ok(())
     }
 
-    pub async fn get(&self, id: Id) -> Result<QuestOut, ServiceError> {
+    pub async fn get_question(&self, id: Id) -> Result<QuestOut, ServiceError> {
         let q = sqlx::query(
             "SELECT _id::text, created_at::text, title, content, tags, status::text, author::text FROM questions WHERE _id = uuid_or_null($1);",
         )
