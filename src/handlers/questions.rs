@@ -2,8 +2,8 @@ use std::str::FromStr;
 use warp::http::StatusCode;
 use warp::{Rejection, Reply};
 
-use crate::store::base::Db;
-use crate::text_processing::filter_out_bad_words;
+use crate::aux::filter_out_bad_words;
+use crate::storage::Db;
 use crate::types::pagination::Pagination;
 use crate::types::question::QuestIn;
 use crate::types::shared::Id;

@@ -1,12 +1,13 @@
-use auth_providers::jwt::JWTAuth as AuthTokenIssuer;
+use auth::JWTAuth as AuthTokenIssuer;
 use error_handling::handle_err;
-use store::base::Db;
+use storage::Db;
 use tracing_subscriber::fmt::format::FmtSpan;
 use warp::{http, Filter};
-mod auth_providers;
-mod routes;
-mod store;
-mod text_processing;
+
+mod auth;
+mod aux;
+mod handlers;
+mod storage;
 mod types;
 
 #[tokio::main]
@@ -35,54 +36,54 @@ async fn main() {
     let add_usr_route = warp::path!("users")
         .and(warp::post())
         .and(warp::body::json())
-        .and(routes::auth::parse_auth_headers())
+        .and(handlers::parse_auth_headers())
         .and(db_filter.clone())
         .and(warp::any().map(move || moderator_key.clone()))
-        .and_then(routes::users::add_user);
+        .and_then(handlers::add_user);
 
     let login_user_route = warp::path!("login")
         .and(warp::post())
         .and(warp::body::json())
         .and(db_filter.clone())
         .and(warp::any().map(move || token_issuer.clone()))
-        .and_then(routes::auth::login);
+        .and_then(handlers::login);
 
     let list_questions_route = warp::path!("questions")
         .and(warp::get())
         .and(warp::query())
         .and(db_filter.clone())
-        .and_then(routes::questions::list_guestions);
+        .and_then(handlers::list_guestions);
 
     let add_question_route = warp::path!("questions")
         .and(warp::post())
-        .and(routes::auth::authenticate(token_checker.clone()))
+        .and(handlers::authenticate(token_checker.clone()))
         .and(db_filter.clone())
         .and(warp::body::json())
-        .and_then(routes::questions::add_question);
+        .and_then(handlers::add_question);
 
     let update_question_route = warp::put()
         .and(warp::path("questions"))
-        .and(routes::auth::authenticate(token_checker.clone()))
+        .and(handlers::authenticate(token_checker.clone()))
         .and(warp::path::param::<String>())
         .and(warp::path::end())
         .and(db_filter.clone())
         .and(warp::body::json())
-        .and_then(routes::questions::update_question);
+        .and_then(handlers::update_question);
 
     let delete_question_route = warp::delete()
         .and(warp::path("questions"))
-        .and(routes::auth::authenticate(token_checker))
+        .and(handlers::authenticate(token_checker))
         .and(warp::path::param::<String>())
         .and(warp::path::end())
         .and(db_filter.clone())
-        .and_then(routes::questions::delete_question);
+        .and_then(handlers::delete_question);
 
     let get_question_route = warp::get()
         .and(warp::path("questions"))
         .and(warp::path::param::<String>())
         .and(warp::path::end())
         .and(db_filter.clone())
-        .and_then(routes::questions::get_question);
+        .and_then(handlers::get_question);
 
     let routes = add_usr_route
         .or(login_user_route)

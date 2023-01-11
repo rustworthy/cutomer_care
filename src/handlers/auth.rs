@@ -1,8 +1,8 @@
 use std::future;
 
 use crate::{
-    auth_providers::base::AuthProvider,
-    store::base::Db,
+    auth::AuthProvider,
+    storage::Db,
     types::{
         auth::{Creds, Token},
         user::UserTknDetails,

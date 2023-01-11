@@ -1,4 +1,4 @@
-use crate::{store::base::Db, types::user::UserIn};
+use crate::{storage::Db, types::user::UserIn};
 use error_handling::ServiceError;
 use warp::{http::StatusCode, Rejection, Reply};
 
